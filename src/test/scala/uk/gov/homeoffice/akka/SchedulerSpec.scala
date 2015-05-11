@@ -2,13 +2,12 @@ package uk.gov.homeoffice.akka
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import akka.{Wakeup, NotScheduled, Scheduled, Scheduler}
 import akka.actor.{Actor, Cancellable, Props}
 import akka.event.LoggingReceive
+import akka.{NotScheduled, Scheduled, Scheduler, Wakeup}
 import org.specs2.mutable.Specification
-import org.specs2.time.NoTimeConversions
 
-class SchedulerSpec extends Specification with NoTimeConversions {
+class SchedulerSpec extends Specification {
   "Actor" should {
     "be scheduled to act as a poller" in new ActorSystemContext {
       val exampleSchedulerActor = system.actorOf(Props(new ExampleSchedulerActor), "exampleSchedulerActor")
