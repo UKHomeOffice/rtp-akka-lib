@@ -10,10 +10,10 @@ case object Wakeup
 
 trait Scheduler extends ActorLogging {
   this: Actor =>
-  
+
   private var cancellable: Option[Cancellable] = _
 
-  def schedule: Option[Cancellable]
+  val schedule: Option[Cancellable]
 
   override def preStart(): Unit = cancellable = schedule
 

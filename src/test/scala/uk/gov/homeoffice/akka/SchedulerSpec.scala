@@ -17,7 +17,7 @@ class SchedulerSpec extends Specification with NoTimeConversions {
     }
 
     "not be scheduled to act as a poller" in new ActorSystemContext {
-      val exampleSchedulerActor = system.actorOf(Props(new ExampleNotSchedulerActor), "exampleSchedulerActor")
+      val exampleSchedulerActor = system.actorOf(Props(new ExampleSchedulerActor with NoScheduler), "exampleNoSchedulerActor")
       exampleSchedulerActor ! Scheduled
       expectMsg(NotScheduled)
     }
@@ -25,17 +25,15 @@ class SchedulerSpec extends Specification with NoTimeConversions {
 }
 
 class ExampleSchedulerActor extends Actor with Scheduler {
-  def schedule: Option[Cancellable] = Some(context.system.scheduler.schedule(initialDelay = 1.seconds, interval = 5.seconds, receiver = self, message = Wakeup))
+  val schedule: Option[Cancellable] = Some(context.system.scheduler.schedule(initialDelay = 1 second, interval = 5 seconds, receiver = self, message = Wakeup))
 
   def receive = LoggingReceive {
     case Wakeup => println("Hello World!")
   }
 }
 
-class ExampleNotSchedulerActor extends Actor with Scheduler {
-  def schedule: Option[Cancellable] = None
+trait NoScheduler {
+  this: Scheduler =>
 
-  def receive = LoggingReceive {
-    case Wakeup => println("Hello World!")
-  }
+  override val schedule: Option[Cancellable] = None
 }
