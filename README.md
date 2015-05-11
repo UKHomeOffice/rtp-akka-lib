@@ -82,7 +82,7 @@ Example Usage
       }
   
       "not be scheduled to act as a poller" in new ActorSystemContext {
-        val exampleSchedulerActor = system.actorOf(Props(new ExampleSchedulerActor with NoScheduler), "exampleNoSchedulerActor")
+        val exampleSchedulerActor = system.actorOf(Props(new ExampleSchedulerActor with NoSchedule), "exampleNoSchedulerActor")
         exampleSchedulerActor ! Scheduled
         expectMsg(NotScheduled)
       }
@@ -90,16 +90,10 @@ Example Usage
   }
   
   class ExampleSchedulerActor extends Actor with Scheduler {
-    val schedule: Option[Cancellable] = Some(context.system.scheduler.schedule(initialDelay = 1 second, interval = 5 seconds, receiver = self, message = Wakeup))
+    val schedule: Cancellable = context.system.scheduler.schedule(initialDelay = 1 second, interval = 5 seconds, receiver = self, message = Wakeup)
   
     def receive = LoggingReceive {
       case Wakeup => println("Hello World!")
     }
-  }
-  
-  trait NoScheduler {
-    this: Scheduler =>
-  
-    override val schedule: Option[Cancellable] = None
   }
 ```

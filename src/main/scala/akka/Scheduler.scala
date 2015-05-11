@@ -11,20 +11,30 @@ case object Wakeup
 trait Scheduler extends ActorLogging {
   this: Actor =>
 
-  private var cancellable: Option[Cancellable] = _
+  private var cancellable: Cancellable = _
 
-  val schedule: Option[Cancellable]
+  val schedule: Cancellable
 
   override def preStart(): Unit = cancellable = schedule
 
-  override def postStop(): Unit = cancellable.foreach { _.cancel() }
+  override def postStop(): Unit = if (cancellable != null) cancellable.cancel()
 
   override protected[akka] def aroundReceive(receive: Actor.Receive, msg: Any): Unit = msg match {
     case Scheduled =>
       log.info(s"${sender()} asked if I am scheduled!")
-      sender() ! cancellable.map(_ => Scheduled).getOrElse(NotScheduled)
+      sender() ! (if (cancellable == null) NotScheduled else if (cancellable.isCancelled) NotScheduled else Scheduled)
 
     case _ =>
       receive.applyOrElse(msg, unhandled)
+  }
+}
+
+trait NoSchedule {
+  this: Scheduler =>
+
+  override val schedule: Cancellable = new Cancellable {
+    def isCancelled = true
+
+    def cancel() = true
   }
 }
