@@ -25,7 +25,7 @@ object Build extends Build {
       resolvers ++= Seq(
         "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/",
         "Sonatype Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/",
-        "scalaz-bintray" at "http://dl.bintray.com/scalaz/releases",
+        "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases",
         "Kamon Repository" at "http://repo.kamon.io",
         "Artifactory Snapshot Realm" at "http://artifactory.registered-traveller.homeoffice.gov.uk/artifactory/libs-snapshot-local/"),
       libraryDependencies ++= Seq(
