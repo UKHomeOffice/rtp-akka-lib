@@ -33,7 +33,9 @@ object Build extends Build {
           "org.scalautils" %% "scalautils" % "2.1.5" withSources(),
           "uk.gov.homeoffice" %% "io-it" % "1.0-SNAPSHOT" withSources()),
         libraryDependencies ++= Seq(
-          "org.specs2" %% "specs2" % "2.4.17" % "test, it" withSources(),
+          "org.specs2" %% "specs2-core" % "3.6" % "test, it" withSources(),
+          "org.specs2" %% "specs2-mock" % "3.6" % "test, it" withSources(),
+          "org.specs2" %% "specs2-matcher-extra" % "3.6" % "test, it" withSources(),
           "com.typesafe.akka" %% "akka-testkit" % "2.3.9" % "test, it" withSources(),
           "uk.gov.homeoffice" %% "test-it" % "1.0-SNAPSHOT" % "test, it" classifier "tests" withSources(),
           "uk.gov.homeoffice" %% "io-it" % "1.0-SNAPSHOT" % "test, it" classifier "tests" withSources()))

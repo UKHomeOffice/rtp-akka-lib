@@ -10,3 +10,9 @@ publishArtifact in (Test, packageDoc) := true
 
 // Enable publishing the test sources jar
 publishArtifact in (Test, packageSrc) := true
+
+assemblyMergeStrategy in assembly := {
+  case PathList("META-INF", "MANIFEST.MF") => MergeStrategy.discard
+  case PathList(ps @ _*) if ps.last endsWith ".java" => MergeStrategy.discard
+  case _ => MergeStrategy.first
+}
