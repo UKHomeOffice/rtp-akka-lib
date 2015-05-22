@@ -20,7 +20,8 @@ object Build extends Build {
           "-language:existentials",
           "-language:reflectiveCalls",
           "-language:postfixOps",
-          "-Yrangepos"),
+          "-Yrangepos",
+          "-Yrepl-sync"),
         ivyScala := ivyScala.value map { _.copy(overrideScalaVersion = true) },
         resolvers ++= Seq(
           "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/",
