@@ -30,7 +30,7 @@ object Build extends Build {
         "Artifactory Snapshot Realm" at "http://artifactory.registered-traveller.homeoffice.gov.uk/artifactory/libs-snapshot-local/"),
       libraryDependencies ++= Seq(
         "com.typesafe.akka" %% "akka-actor" % "2.3.9" withSources(),
-        "org.scalautils" %% "scalautils" % "2.1.5" withSources(),
+        "org.scalactic" %% "scalactic" % "2.2.4" withSources(),
         "uk.gov.homeoffice" %% "io-it" % "1.0-SNAPSHOT" withSources()),
       libraryDependencies ++= Seq(
         "org.specs2" %% "specs2-core" % "3.6" % "test, it" withSources(),
