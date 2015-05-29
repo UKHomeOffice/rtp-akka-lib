@@ -1,6 +1,6 @@
 Akka - Reusable functionality
 =============================
-Akka reusable functionality originally written for Registered Traveller UK
+Akka reusable functionality and Scala Spray functionality/template for general use (originally written for Registered Traveller UK).
 
 Project built with the following (main) technologies:
 
@@ -10,9 +10,11 @@ Project built with the following (main) technologies:
 
 - Akka
 
+- Spray
+
 Introduction
 ------------
-TODO
+Boot a microservice utilising functionality built on top of Spray.
 
 Build and Deploy
 ----------------
@@ -52,10 +54,7 @@ Configuration
 -------------
 TODO
 
-Publishing
-----------
-To publish the jar to artifactory you will need to 
-
+The project utilises Artifactory to resolve in-house modules. Do the following:
 1. Copy the .credentials file into your <home directory>/.ivy2/
 2. Edit this .credentials file to fill in the artifactory security credentials (amend the realm name and host where necessary)
 
@@ -72,6 +71,7 @@ When you press &lt;ENTER&gt; SBT leaves "triggered restart" and returns to the n
 
 Example Usage
 -------------
+- Actor scheduling:
 ```scala
   class SchedulerSpec extends Specification {
     "Actor" should {
@@ -95,5 +95,53 @@ Example Usage
     def receive = LoggingReceive {
       case Wakeup => println("Hello World!")
     }
+  }
+```
+
+- Create some Spray routings - HTTP contract/gateway to your microservice:
+```scala
+  object ExampleRouting1 extends ExampleRouting1
+  
+  trait ExampleRouting1 extends Routing {
+   val route =
+     pathPrefix("example") {
+       pathEndOrSingleSlash {
+         get {
+           complete { JObject("status" -> JString("Congratulations")) }
+         }
+       }
+     }
+  }
+  
+  object ExampleRouting2 extends ExampleRouting2
+    
+  trait ExampleRouting2 extends Routing {
+   val route =
+     pathPrefix("example") {
+       pathEndOrSingleSlash {
+         get {
+           complete { JObject("status" -> JString("Congratulations")) }
+         }
+       }
+     }
+  }
+```
+
+- Create your application (App) utilitising your routings (as well as anything else e.g. booting/wiring Akka actors):
+```scala
+  object ExampleBoot extends App with SprayBoot {
+    bootRoutings(ExampleRouting1 ~ ExampleRouting2)
+  }
+```
+
+Noting that a "configuration" such as application.conf must be provided e.g.
+```scala
+  spray.can.server {
+    name = "example-spray-can"
+    host = "0.0.0.0"
+    port = 9100
+    request-timeout = 1s
+    service = "example-http-routing-service"
+    remote-address-header = on
   }
 ```
