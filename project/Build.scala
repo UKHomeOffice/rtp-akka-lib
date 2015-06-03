@@ -3,12 +3,14 @@ import Keys._
 import spray.revolver.RevolverPlugin._
 
 object Build extends Build {
-  lazy val root = Project(id = "rtp-akka-lib", base = file("."))
+  val moduleName = "rtp-akka-lib"
+
+  lazy val root = Project(id = moduleName, base = file("."))
     .configs(IntegrationTest)
     .settings(Revolver.settings)
     .settings(Defaults.itSettings: _*)
     .settings(
-      name := "rtp-akka-lib",
+      name := moduleName,
       organization := "uk.gov.homeoffice",
       version := "1.0-SNAPSHOT",
       scalaVersion := "2.11.6",

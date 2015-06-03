@@ -11,11 +11,11 @@ import uk.gov.homeoffice.HasConfig
  * Boot your application with your required routings e.g.
  *
  * object ExampleBoot extends App with SprayBoot {
- *   bootSpray(ExampleRouting1 ~ ExampleRouting2)
+ *   bootRoutings(ExampleRouting1 ~ ExampleRouting2)
  * }
  *
- * "bootSpray" defaults to using Spray defaults for the likes of failure handling.
- * In order to add customisations, provide "bootSpray" a seconds argument list for required exception and/or rejection handling.
+ * "bootRoutings" defaults to using Spray defaults for the likes of failure handling.
+ * In order to add customisations, provide "bootRoutings" a seconds argument list for required exception and/or rejection handling.
  */
 trait SprayBoot extends HttpService with RouteConcatenation with HasConfig {
   this: App =>
