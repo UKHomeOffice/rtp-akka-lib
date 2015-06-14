@@ -1,6 +1,6 @@
 Akka - Reusable functionality
 =============================
-Akka reusable functionality and Scala Spray functionality/template for general use (originally written for Registered Traveller UK).
+Akka reusable functionality and Scala Spray functionality/template for general use.
 
 Project built with the following (main) technologies:
 
@@ -11,6 +11,8 @@ Project built with the following (main) technologies:
 - Akka
 
 - Spray
+
+- Specs2
 
 Introduction
 ------------
@@ -57,6 +59,10 @@ TODO
 The project utilises Artifactory to resolve in-house modules. Do the following:
 1. Copy the .credentials file into your <home directory>/.ivy2/
 2. Edit this .credentials file to fill in the artifactory security credentials (amend the realm name and host where necessary)
+
+> activator publish
+
+Note that initially this project refers to some libraries held within a private Artifactory. However, those libraries have been open sourced under https://github.com/UKHomeOffice.
 
 SBT - Revolver
 --------------
