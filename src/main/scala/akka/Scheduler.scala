@@ -13,7 +13,7 @@ trait Scheduler extends ActorLogging {
 
   private var cancellable: Cancellable = _
 
-  val schedule: Cancellable
+  def schedule: Cancellable
 
   override def preStart(): Unit = cancellable = schedule
 
