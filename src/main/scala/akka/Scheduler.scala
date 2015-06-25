@@ -32,7 +32,7 @@ trait Scheduler extends ActorLogging {
 trait NoSchedule {
   this: Scheduler =>
 
-  override val schedule: Cancellable = new Cancellable {
+  override lazy val schedule: Cancellable = new Cancellable {
     def isCancelled = true
 
     def cancel() = true

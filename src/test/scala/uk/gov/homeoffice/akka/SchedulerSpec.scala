@@ -24,7 +24,7 @@ class SchedulerSpec extends Specification {
 }
 
 class ExampleSchedulerActor extends Actor with Scheduler {
-  val schedule: Cancellable = context.system.scheduler.schedule(initialDelay = 1 second, interval = 5 seconds, receiver = self, message = Wakeup)
+  lazy val schedule: Cancellable = context.system.scheduler.schedule(initialDelay = 1 second, interval = 5 seconds, receiver = self, message = Wakeup)
 
   def receive = LoggingReceive {
     case Wakeup => println("Hello World!")
