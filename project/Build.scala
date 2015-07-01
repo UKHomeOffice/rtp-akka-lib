@@ -36,15 +36,8 @@ object Build extends Build {
         "io.spray" %% "spray-routing" % "1.3.3" withSources(),
         "uk.gov.homeoffice" %% "rtp-io-lib" % "1.0-SNAPSHOT" withSources()),
       libraryDependencies ++= Seq(
-        "org.specs2" %% "specs2-core" % "3.6.2" % "test, it" withSources(),
-        "org.specs2" %% "specs2-mock" % "3.6.2" % "test, it" withSources(),
-        "org.specs2" %% "specs2-matcher-extra" % "3.6.2" % "test, it" withSources(),
         "com.typesafe.akka" %% "akka-testkit" % "2.3.9" % "test, it" withSources(),
-        "io.spray" %% "spray-testkit" % "1.3.3" % "test, it" withSources() excludeAll(
-          ExclusionRule(organization = "org.specs2", name = "specs2-core_2.11"),
-          ExclusionRule(organization = "org.specs2", name = "specs2-mock_2.11"),
-          ExclusionRule(organization = "org.specs2", name = "specs2-matcher-extra_2.11")
-        ),
+        "io.spray" %% "spray-testkit" % "1.3.3" % "test, it" withSources() excludeAll ExclusionRule(organization = "org.specs2"),
         "uk.gov.homeoffice" %% "rtp-test-lib" % "1.0-SNAPSHOT" % "test, it" classifier "tests" withSources(),
         "uk.gov.homeoffice" %% "rtp-io-lib" % "1.0-SNAPSHOT" % "test, it" classifier "tests" withSources()))
 }
