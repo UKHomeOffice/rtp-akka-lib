@@ -12,6 +12,10 @@ import org.scalactic.{Bad, Good, Or}
 import grizzled.slf4j.Logging
 import uk.gov.homeoffice.json.{JsonError, JsonFormats}
 
+/**
+ * Implicit responses for JsonError are of type <anything> Or JsonError i.e. if not using custom response handling code and expecting the implicit functionality of this trait to be used, a response must match one of the declared marshallers here.
+ * So the "orMarshaller" can handle either a Good(<anything>) or a Bad(JsonError).
+ */
 trait Marshallers extends JsonFormats with Logging {
   implicit val orMarshaller = ToResponseMarshaller.of[_ Or JsonError](`application/json`) { (value, contentType, ctx) =>
     value match {
