@@ -7,36 +7,35 @@ import spray.http.MediaTypes._
 import spray.http.StatusCodes._
 import spray.http.{HttpEntity, HttpResponse}
 import spray.httpx.marshalling.ToResponseMarshaller
-import org.json4s.JValue
-import org.json4s.JsonAST.{JObject, JString}
-import org.json4s.native.JsonMethods._
+import org.json4s.native.Serialization.write
 import org.scalactic.{Bad, Good, Or}
-import uk.gov.homeoffice.json.JsonError
+import grizzled.slf4j.Logging
+import uk.gov.homeoffice.json.{JsonError, JsonFormats}
 
-trait Marshallers {
-  implicit val orMarshaller = ToResponseMarshaller.of[JValue Or JsonError](`application/json`) { (value, contentType, ctx) =>
+trait Marshallers extends JsonFormats with Logging {
+  implicit val orMarshaller = ToResponseMarshaller.of[_ Or JsonError](`application/json`) { (value, contentType, ctx) =>
     value match {
       case Good(_) =>
         ctx.marshalTo(HttpResponse(status = OK))
 
       case Bad(jsonError) =>
-        ctx.marshalTo(HttpResponse(status = UnprocessableEntity, entity = HttpEntity(`application/json`, pretty(render(JObject("status" -> JString(jsonError.error)))))))
+        ctx.marshalTo(HttpResponse(status = UnprocessableEntity, entity = HttpEntity(`application/json`, write(jsonError.copy(error = jsonError.error.replaceAll("\"", "'"))))))
     }
   }
 
-  implicit def futureOrMarshaller[G, B]: ToResponseMarshaller[Future[JValue Or JsonError]] = ToResponseMarshaller.of[Future[JValue Or JsonError]](`application/json`) { (value, contentType, ctx) =>
+  implicit val futureOrMarshaller = ToResponseMarshaller.of[Future[_ Or JsonError]](`application/json`) { (value, contentType, ctx) =>
     value.onComplete {
       case Success(v) => v match {
         case Good(_) =>
           ctx.marshalTo(HttpResponse(status = OK))
 
         case Bad(jsonError) =>
-          ctx.marshalTo(HttpResponse(status = UnprocessableEntity, entity = HttpEntity(`application/json`, pretty(render(JObject("status" -> JString(jsonError.error)))))))
+          ctx.marshalTo(HttpResponse(status = UnprocessableEntity, entity = HttpEntity(`application/json`, write(jsonError.copy(error = jsonError.error.replaceAll("\"", "'"))))))
       }
 
-      case Failure(error) =>
-        println(error)
-        ctx.handleError(error)
+      case Failure(e) =>
+        error(e)
+        ctx.handleError(e)
     }
   }
 }
