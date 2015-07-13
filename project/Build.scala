@@ -31,7 +31,7 @@ object Build extends Build {
         "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases",
         "Kamon Repository" at "http://repo.kamon.io"),
       libraryDependencies ++= Seq(
-        "com.typesafe.akka" %% "akka-actor" % "2.3.9" withSources(),
+        "com.typesafe.akka" %% "akka-actor" % "2.3.12" withSources(),
         "io.spray" %% "spray-can" % "1.3.3" withSources(),
         "io.spray" %% "spray-routing" % "1.3.3" withSources()),
       libraryDependencies ++= Seq(
