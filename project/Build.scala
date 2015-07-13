@@ -33,7 +33,9 @@ object Build extends Build {
       libraryDependencies ++= Seq(
         "com.typesafe.akka" %% "akka-actor" % "2.3.12" withSources(),
         "io.spray" %% "spray-can" % "1.3.3" withSources(),
-        "io.spray" %% "spray-routing" % "1.3.3" withSources()),
+        "io.spray" %% "spray-routing" % "1.3.3" withSources(),
+        "org.clapper" %% "grizzled-slf4j" % "1.0.2",
+        "ch.qos.logback" % "logback-classic" % "1.1.3"),
       libraryDependencies ++= Seq(
         "com.typesafe.akka" %% "akka-testkit" % "2.3.9" % "test, it" withSources(),
         "io.spray" %% "spray-testkit" % "1.3.3" % "test, it" withSources() excludeAll ExclusionRule(organization = "org.specs2")))

@@ -7,36 +7,45 @@ import spray.http.MediaTypes._
 import spray.http.StatusCodes._
 import spray.http.{HttpEntity, HttpResponse}
 import spray.httpx.marshalling.ToResponseMarshaller
-import org.json4s.JValue
-import org.json4s.JsonAST.{JObject, JString}
-import org.json4s.native.JsonMethods._
+import org.json4s.native.Serialization.write
 import org.scalactic.{Bad, Good, Or}
-import uk.gov.homeoffice.json.JsonError
+import grizzled.slf4j.Logging
+import uk.gov.homeoffice.json.{JsonError, JsonFormats}
 
-trait Marshallers {
-  implicit val orMarshaller = ToResponseMarshaller.of[JValue Or JsonError](`application/json`) { (value, contentType, ctx) =>
+/**
+ * Implicit responses for JsonError are of type <anything> Or JsonError i.e. if not using custom response handling code and expecting the implicit functionality of this trait to be used, a response must match one of the declared marshallers here.
+ * So the "orMarshaller" can handle either a Good(<anything>) or a Bad(JsonError).
+ */
+trait Marshallers extends JsonFormats with Logging {
+  implicit val orMarshaller = ToResponseMarshaller.of[_ Or JsonError](`application/json`) { (value, contentType, ctx) =>
     value match {
-      case Good(_) =>
-        ctx.marshalTo(HttpResponse(status = OK))
+      case Good(g: AnyRef) =>
+        ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`application/json`, write(g))))
+
+      case Good(g) =>
+        ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`application/json`, g.toString)))
 
       case Bad(jsonError) =>
-        ctx.marshalTo(HttpResponse(status = UnprocessableEntity, entity = HttpEntity(`application/json`, pretty(render(JObject("status" -> JString(jsonError.error)))))))
+        ctx.marshalTo(HttpResponse(status = UnprocessableEntity, entity = HttpEntity(`application/json`, write(jsonError))))
     }
   }
 
-  implicit def futureOrMarshaller[G, B]: ToResponseMarshaller[Future[JValue Or JsonError]] = ToResponseMarshaller.of[Future[JValue Or JsonError]](`application/json`) { (value, contentType, ctx) =>
+  implicit val futureOrMarshaller = ToResponseMarshaller.of[Future[_ Or JsonError]](`application/json`) { (value, contentType, ctx) =>
     value.onComplete {
       case Success(v) => v match {
-        case Good(_) =>
-          ctx.marshalTo(HttpResponse(status = OK))
+        case Good(g: AnyRef) =>
+          ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`application/json`, write(g))))
+
+        case Good(g) =>
+          ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`application/json`, g.toString)))
 
         case Bad(jsonError) =>
-          ctx.marshalTo(HttpResponse(status = UnprocessableEntity, entity = HttpEntity(`application/json`, pretty(render(JObject("status" -> JString(jsonError.error)))))))
+          ctx.marshalTo(HttpResponse(status = UnprocessableEntity, entity = HttpEntity(`application/json`, write(jsonError))))
       }
 
-      case Failure(error) =>
-        println(error)
-        ctx.handleError(error)
+      case Failure(e) =>
+        error(e)
+        ctx.handleError(e)
     }
   }
 }
