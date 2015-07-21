@@ -1,6 +1,7 @@
 package uk.gov.homeoffice.akka
 
 import java.util.UUID
+import scala.concurrent.duration._
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKitBase}
 import org.specs2.execute.{AsResult, Result}
@@ -18,6 +19,7 @@ trait ActorSystemContext extends TestKitBase with ImplicitSender with Scope with
     } finally {
       println(s"x Shutting down actor system $system")
       system.shutdown()
+      system.awaitTermination(10 seconds)
     }
   }
 }
