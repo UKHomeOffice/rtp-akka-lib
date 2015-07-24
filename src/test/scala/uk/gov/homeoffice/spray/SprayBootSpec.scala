@@ -11,7 +11,7 @@ import org.json4s.native.JsonMethods._
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
 import com.typesafe.config.ConfigFactory
-import uk.gov.homeoffice.HasConfig
+import uk.gov.homeoffice.configuration.HasConfig
 import uk.gov.homeoffice.json.JsonFormats
 
 class SprayBootSpec extends Specification {

@@ -5,7 +5,7 @@ import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.io.IO
 import spray.can.Http
 import spray.routing._
-import uk.gov.homeoffice.HasConfig
+import uk.gov.homeoffice.configuration.HasConfig
 
 /**
  * Boot your application with your required routings e.g.

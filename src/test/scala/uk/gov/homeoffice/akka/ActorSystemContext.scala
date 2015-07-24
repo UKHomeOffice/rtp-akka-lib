@@ -6,7 +6,7 @@ import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKitBase}
 import org.specs2.execute.{AsResult, Result}
 import org.specs2.specification.Scope
-import uk.gov.homeoffice.HasConfig
+import uk.gov.homeoffice.configuration.HasConfig
 import uk.gov.homeoffice.specs2.ComposableAround
 
 trait ActorSystemContext extends TestKitBase with ImplicitSender with Scope with ComposableAround with HasConfig {

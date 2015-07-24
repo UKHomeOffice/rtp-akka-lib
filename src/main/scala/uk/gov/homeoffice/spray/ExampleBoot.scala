@@ -8,7 +8,7 @@ import spray.routing._
 import org.json4s.JsonAST.{JObject, JString}
 import org.json4s.native.JsonMethods._
 import com.typesafe.config.ConfigFactory
-import uk.gov.homeoffice.HasConfig
+import uk.gov.homeoffice.configuration.HasConfig
 import uk.gov.homeoffice.json.JsonFormats
 
 /**
