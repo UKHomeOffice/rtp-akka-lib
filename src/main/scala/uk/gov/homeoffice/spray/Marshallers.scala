@@ -22,9 +22,11 @@ trait Marshallers extends JsonFormats with Logging {
   implicit val orMarshaller = ToResponseMarshaller.of[_ Or JsonError](`application/json`) { (value, contentType, ctx) =>
     value match {
       case Good(j: JValue) =>
+        println(s"===> Marshalling: ${compact(render(j))}")
         ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`application/json`, compact(render(j)))))
 
       case Good(g) =>
+        println(s"===> Marshalling: g")
         ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`text/plain`, g.toString)))
 
       case Bad(jsonError) =>
@@ -36,9 +38,11 @@ trait Marshallers extends JsonFormats with Logging {
     value.onComplete {
       case Success(v) => v match {
         case Good(j: JValue) =>
+          println(s"===> Marshalling: ${compact(render(j))}")
           ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`application/json`, compact(render(j)))))
 
         case Good(g) =>
+          println(s"===> Marshalling: g")
           ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`text/plain`, g.toString)))
 
         case Bad(jsonError) =>
