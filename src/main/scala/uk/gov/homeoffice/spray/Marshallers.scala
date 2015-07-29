@@ -2,29 +2,35 @@ package uk.gov.homeoffice.spray
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.{Failure, Success}
+import scala.pickling.Defaults._
+import scala.pickling.json._
+import scala.util.{Failure, Success, Try}
 import spray.http.MediaTypes._
 import spray.http.StatusCodes._
 import spray.http.{HttpEntity, HttpResponse}
-import spray.httpx.marshalling.{ToResponseMarshallingContext, ToResponseMarshaller}
+import spray.httpx.marshalling.{ToResponseMarshaller, ToResponseMarshallingContext}
 import org.json4s.JValue
+import org.json4s.native.JsonMethods._
 import org.json4s.native.Serialization.write
 import org.scalactic.{Bad, Good, Or}
 import grizzled.slf4j.Logging
 import uk.gov.homeoffice.json.{JsonError, JsonFormats}
-import org.json4s.native.JsonMethods._
 
 /**
  * Implicit responses for JsonError are of type <anything> Or JsonError i.e. if not using custom response handling code and expecting the implicit functionality of this trait to be used, a response must match one of the declared marshallers here.
  * So the "orMarshaller" can handle either a Good(<anything>) or a Bad(JsonError).
  */
 trait Marshallers extends JsonFormats with Logging {
-  val  marshall: ToResponseMarshallingContext => PartialFunction[_ Or JsonError, Unit] = ctx => {
+  val  marshall: ToResponseMarshallingContext => PartialFunction[_ Or JsonError, Any] = ctx => {
     case Good(j: JValue) =>
       ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`application/json`, compact(render(j)))))
 
     case Good(g: AnyRef) =>
-      ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`application/json`, write(g))))
+      val response = Try {
+        write(g)
+      } getOrElse g.pickle.toString
+
+      ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`application/json`, response)))
 
     case Good(g) =>
       ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`text/plain`, g.toString)))
