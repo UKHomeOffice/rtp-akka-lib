@@ -32,13 +32,14 @@ object Build extends Build {
         "Kamon Repository" at "http://repo.kamon.io"),
       libraryDependencies ++= Seq(
         "com.typesafe.akka" %% "akka-actor" % "2.3.12" withSources(),
+        "com.typesafe.akka" %% "akka-remote" % "2.3.12" withSources(),
         "io.spray" %% "spray-can" % "1.3.3" withSources(),
         "io.spray" %% "spray-routing" % "1.3.3" withSources(),
         "org.clapper" %% "grizzled-slf4j" % "1.0.2",
         "ch.qos.logback" % "logback-classic" % "1.1.3"),
       libraryDependencies ++= Seq(
-        "com.typesafe.akka" %% "akka-testkit" % "2.3.9" % "test, it" withSources(),
-        "io.spray" %% "spray-testkit" % "1.3.3" % "test, it" withSources() excludeAll ExclusionRule(organization = "org.specs2")))
+        "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % Test withSources(),
+        "io.spray" %% "spray-testkit" % "1.3.3" % Test withSources() excludeAll ExclusionRule(organization = "org.specs2")))
 
   val testPath = "../rtp-test-lib"
   val ioPath = "../rtp-io-lib"
