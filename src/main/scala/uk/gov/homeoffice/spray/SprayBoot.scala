@@ -1,5 +1,7 @@
 package uk.gov.homeoffice.spray
 
+import grizzled.slf4j.Logging
+
 import scala.util.Try
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.io.IO
@@ -17,7 +19,7 @@ import uk.gov.homeoffice.configuration.HasConfig
  * "bootRoutings" defaults to using Spray defaults for the likes of failure handling.
  * In order to add customisations, provide "bootRoutings" a seconds argument list for required exception and/or rejection handling.
  */
-trait SprayBoot extends HttpService with RouteConcatenation with HasConfig {
+trait SprayBoot extends HttpService with RouteConcatenation with HasConfig with Logging {
   this: App =>
 
   implicit lazy val actorRefFactory = ActorSystem(Try { config.getString("spray.can.server.name") } getOrElse "spray-can")
@@ -31,7 +33,7 @@ trait SprayBoot extends HttpService with RouteConcatenation with HasConfig {
   def bootRoutings(routings: Seq[Routing])(implicit exceptionHandler: ExceptionHandler = ExceptionHandler.default,
                                                     rejectionHandler: RejectionHandler = RejectionHandler.Default): Unit = {
     require(routings.nonEmpty, "No routes declared")
-    println(s"""Booting ${routings.size} ${if (routings.size > 1) "routes" else "route"}""")
+    info(s"""Booting ${routings.size} ${if (routings.size > 1) "routes" else "route"}""")
 
     val routes = routings.tail.foldLeft(routings.head.route) { (route, routing) => route ~ routing.route }
 
