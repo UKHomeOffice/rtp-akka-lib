@@ -22,6 +22,26 @@ import uk.gov.homeoffice.json.{JsonError, JsonFormats}
  */
 trait Marshallers extends JsonFormats with Logging {
   val marshallOr: ToResponseMarshallingContext => PartialFunction[_ Or JsonError, Any] = ctx => {
+    case Good(f: Future[_]) => f.onComplete {
+      case Success(v) => v match {
+        case j: JValue =>
+          ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`application/json`, compact(render(j)))))
+
+        case a: AnyRef =>
+          val response = Try {
+            write(a)
+          } getOrElse a.pickle.toString
+
+          ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`application/json`, response)))
+
+        case a =>
+          ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`text/plain`, a.toString)))
+      }
+
+      case Failure(t) =>
+        ctx.marshalTo(HttpResponse(status = UnprocessableEntity, entity = HttpEntity(`application/json`, write(JsonError(error = Some(t.getMessage), throwable = Some(t))))))
+    }
+
     case Good(j: JValue) =>
       ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`application/json`, compact(render(j)))))
 
