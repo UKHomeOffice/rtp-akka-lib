@@ -21,7 +21,34 @@ import uk.gov.homeoffice.json.{JsonError, JsonFormats}
  * So the "orMarshaller" can handle either a Good(<anything>) or a Bad(JsonError).
  */
 trait Marshallers extends JsonFormats with Logging {
-  val  marshall: ToResponseMarshallingContext => PartialFunction[_ Or JsonError, Any] = ctx => {
+  val marshall: ToResponseMarshallingContext => PartialFunction[Any, Any] = ctx => {
+    case a: AnyRef =>
+      val response = Try {
+        write(a)
+      } getOrElse a.pickle.toString
+
+      ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`application/json`, response)))
+
+    case a =>
+      ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`text/plain`, a.toString)))
+  }
+
+  implicit val marshaller = ToResponseMarshaller.of[Any](`application/json`) { (value, contentType, ctx) =>
+    marshall(ctx)(value)
+  }
+
+  implicit val futureMarshaller = ToResponseMarshaller.of[Future[Any]](`application/json`) { (value, contentType, ctx) =>
+    value.onComplete {
+      case Success(v) =>
+        marshall(ctx)(v)
+
+      case Failure(e) =>
+        error(e)
+        ctx.handleError(e)
+    }
+  }
+
+  val marshallOr: ToResponseMarshallingContext => PartialFunction[_ Or JsonError, Any] = ctx => {
     case Good(j: JValue) =>
       ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`application/json`, compact(render(j)))))
 
@@ -40,13 +67,13 @@ trait Marshallers extends JsonFormats with Logging {
   }
 
   implicit val orMarshaller = ToResponseMarshaller.of[_ Or JsonError](`application/json`) { (value, contentType, ctx) =>
-    marshall(ctx)(value)
+    marshallOr(ctx)(value)
   }
 
   implicit val futureOrMarshaller = ToResponseMarshaller.of[Future[_ Or JsonError]](`application/json`) { (value, contentType, ctx) =>
     value.onComplete {
       case Success(v) =>
-        marshall(ctx)(v)
+        marshallOr(ctx)(v)
 
       case Failure(e) =>
         error(e)
