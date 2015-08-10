@@ -22,41 +22,41 @@ import uk.gov.homeoffice.json.{JsonError, JsonFormats}
  */
 trait Marshallers extends JsonFormats with Logging {
   val marshallOr: ToResponseMarshallingContext => PartialFunction[_ Or JsonError, Any] = ctx => {
-    case Good(f: Future[_]) => f.onComplete {
-      case Success(v) => v match {
-        case j: JValue =>
-          ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`application/json`, compact(render(j)))))
+    val marshalGood: PartialFunction[Good[Any, _], Any] = {
+      case Good(j: JValue) =>
+        ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`application/json`, compact(render(j)))))
 
-        case a: AnyRef =>
-          val response = Try {
-            write(a)
-          } getOrElse a.pickle.toString
+      case Good(a: AnyRef) =>
+        val response = Try {
+          write(a)
+        } getOrElse a.pickle.toString
 
-          ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`application/json`, response)))
+        ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`application/json`, response)))
 
-        case a =>
-          ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`text/plain`, a.toString)))
-      }
-
-      case Failure(t) =>
-        ctx.marshalTo(HttpResponse(status = UnprocessableEntity, entity = HttpEntity(`application/json`, write(JsonError(error = Some(t.getMessage), throwable = Some(t))))))
+      case Good(a) =>
+        ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`text/plain`, a.toString)))
     }
 
-    case Good(j: JValue) =>
-      ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`application/json`, compact(render(j)))))
+    val goodFuture: PartialFunction[_ Or JsonError, Any] = {
+      case Good(f: Future[_]) => f.onComplete {
+        case Success(v) => marshalGood(Good(v))
 
-    case Good(g: AnyRef) =>
-      val response = Try {
-        write(g)
-      } getOrElse g.pickle.toString
+        case Failure(t) =>
+          ctx.marshalTo(HttpResponse(status = UnprocessableEntity, entity = HttpEntity(`application/json`, write(JsonError(error = Some(t.getMessage), throwable = Some(t))))))
+      }
+    }
 
-      ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`application/json`, response)))
+    val good: PartialFunction[_ Or JsonError, Any] = {
+      case g @ Good(_) =>
+        marshalGood(g)
+    }
 
-    case Good(g) =>
-      ctx.marshalTo(HttpResponse(status = OK, entity = HttpEntity(`text/plain`, g.toString)))
+    val bad: PartialFunction[_ Or JsonError, Any] = {
+      case Bad(jsonError) =>
+        ctx.marshalTo(HttpResponse(status = UnprocessableEntity, entity = HttpEntity(`application/json`, write(jsonError))))
+    }
 
-    case Bad(jsonError) =>
-      ctx.marshalTo(HttpResponse(status = UnprocessableEntity, entity = HttpEntity(`application/json`, write(jsonError))))
+    goodFuture orElse good orElse bad
   }
 
   implicit val orMarshaller = ToResponseMarshaller.of[_ Or JsonError](`application/json`) { (value, contentType, ctx) =>
