@@ -50,11 +50,10 @@ object Build extends Build {
     println("=====================")
 
     val testLib = ProjectRef(file(testPath), "rtp-test-lib")
-    akka.dependsOn(testLib % "test->test;compile->compile")
-
     val ioLib = ProjectRef(file(ioPath), "rtp-io-lib")
-    akka.dependsOn(ioLib % "test->test;compile->compile")
 
+    akka.dependsOn(testLib % "test->test;compile->compile")
+        .dependsOn(ioLib % "test->test;compile->compile")
   } else {
     println("========================")
     println("Build on Jenkins domain ")
