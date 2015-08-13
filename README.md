@@ -39,28 +39,7 @@ To run integration specs:
 > sbt it:test
 
 To run integration specs:
-> sbt it:test
-
-To actually run the application, first "assemble" it:
-> sbt assembly
-
-This packages up an executable JAR - Note that "assembly" will first compile and test.
-
-Then just run as any executable JAR, with any extra Java options for overriding configurations.
-
-For example, to use a config file (other than the default application.conf) which is located on the file system (in this case in the boot directory)
-> java -Dconfig.file=test-classes/my-application.conf -jar <jar name>.jar
-
-And other examples:
-
-booting from project root:
-> java -Dspray.can.server.port=8080 -jar target/scala-2.11/<jar name>.jar
-
-and running from directory of the executable JAR using a config that is within said JAR:
-> java -Dconfig.resource=application.uat.conf -jar <jar name>.jar
-
-Finally you can perform a quick test of the application by calling the API e.g. making a cURL call to the application:
-> curl http://localhost:9100/app-name 
+> sbt it:test 
 
 Configuration
 -------------
