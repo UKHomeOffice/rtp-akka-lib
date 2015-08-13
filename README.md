@@ -20,19 +20,29 @@ Boot a microservice utilising functionality built on top of Spray.
 
 Build and Deploy
 ----------------
-The project is built with SBT (using Activator on top).
+The project is built with SBT. On a Mac (sorry everyone else) do:
+> brew install sbt
+
+It is also a good idea to install Typesafe Activator (which sits on top of SBT) for when you need to create new projects - it also has some SBT extras, so running an application with Activator instead of SBT can be useful. On Mac do:
+> brew install typesafe-activator
 
 To compile:
+> sbt compile
+
+or
 > activator compile
 
 To run the specs:
-> activator test
+> sbt test
 
 To run integration specs:
-> activator it:test
+> sbt it:test
+
+To run integration specs:
+> sbt it:test
 
 To actually run the application, first "assemble" it:
-> activator assembly
+> sbt assembly
 
 This packages up an executable JAR - Note that "assembly" will first compile and test.
 
@@ -60,7 +70,7 @@ The project utilises Artifactory to resolve in-house modules. Do the following:
 1. Copy the .credentials file into your <home directory>/.ivy2/
 2. Edit this .credentials file to fill in the artifactory security credentials (amend the realm name and host where necessary)
 
-> activator publish
+> sbt publish
 
 Note that initially this project refers to some libraries held within a private Artifactory. However, those libraries have been open sourced under https://github.com/UKHomeOffice.
 
