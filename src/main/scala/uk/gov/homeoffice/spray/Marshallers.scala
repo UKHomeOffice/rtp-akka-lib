@@ -10,8 +10,8 @@ import spray.http.StatusCodes._
 import spray.http.{HttpEntity, HttpResponse}
 import spray.httpx.marshalling.{ToResponseMarshaller, ToResponseMarshallingContext}
 import org.json4s.JValue
-import org.json4s.native.JsonMethods._
-import org.json4s.native.Serialization.write
+import org.json4s.jackson.JsonMethods._
+import org.json4s.jackson.Serialization.write
 import org.scalactic.{Bad, Good, Or}
 import grizzled.slf4j.Logging
 import uk.gov.homeoffice.json.{JsonError, JsonFormats}

@@ -7,7 +7,7 @@ import spray.http.{HttpEntity, HttpResponse}
 import spray.httpx.Json4sSupport
 import spray.routing._
 import org.json4s.JsonAST.{JObject, JString}
-import org.json4s.native.JsonMethods._
+import org.json4s.jackson.JsonMethods._
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
 import com.typesafe.config.ConfigFactory
