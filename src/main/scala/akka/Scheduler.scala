@@ -34,4 +34,3 @@ trait Scheduler extends ActorLogging with ConfigFactorySupport {
       receive.applyOrElse(msg, unhandled)
   }
 }
-

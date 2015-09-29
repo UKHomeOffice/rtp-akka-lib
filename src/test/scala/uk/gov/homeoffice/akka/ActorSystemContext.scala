@@ -1,14 +1,13 @@
 package uk.gov.homeoffice.akka
 
 import java.util.UUID
-import grizzled.slf4j.Logging
-
 import scala.concurrent.duration._
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKitBase}
 import org.specs2.execute.{AsResult, Result}
 import org.specs2.specification.Scope
 import com.typesafe.config.{Config, ConfigFactory}
+import grizzled.slf4j.Logging
 import uk.gov.homeoffice.specs2.ComposableAround
 
 abstract class ActorSystemContext(config: Config = ConfigFactory.load) extends TestKitBase with ImplicitSender with Scope with ComposableAround with Logging {
