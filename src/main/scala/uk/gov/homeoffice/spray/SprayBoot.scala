@@ -1,12 +1,11 @@
 package uk.gov.homeoffice.spray
 
-import grizzled.slf4j.Logging
-
 import scala.util.Try
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.io.IO
 import spray.can.Http
 import spray.routing._
+import grizzled.slf4j.Logging
 import uk.gov.homeoffice.configuration.HasConfig
 
 /**
