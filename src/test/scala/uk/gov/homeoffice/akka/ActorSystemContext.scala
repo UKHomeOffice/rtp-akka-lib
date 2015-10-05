@@ -10,7 +10,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 import grizzled.slf4j.Logging
 import uk.gov.homeoffice.specs2.ComposableAround
 
-abstract class ActorSystemContext(config: Config = ConfigFactory.load) extends TestKitBase with ImplicitSender with Scope with ComposableAround with Logging {
+abstract class ActorSystemContext(val config: Config = ConfigFactory.load) extends TestKitBase with ImplicitSender with Scope with ComposableAround with Logging {
   implicit lazy val system: ActorSystem = ActorSystem(UUID.randomUUID().toString, config)
 
   override def around[R: AsResult](r: => R): Result = {
