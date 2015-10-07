@@ -1,9 +1,11 @@
 package uk.gov.homeoffice.spray
 
+import scala.concurrent.duration._
 import scala.util.Try
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.io.IO
 import akka.pattern.ask
+import akka.util.Timeout
 import spray.can.Http
 import spray.routing._
 import grizzled.slf4j.Logging
@@ -49,6 +51,8 @@ trait SprayBoot extends HttpService with RouteConcatenation with HasConfig with 
                          port = Try { config.getInt("spray.can.server.port") } getOrElse 9100)
 
     sys.addShutdownHook {
+      implicit val timeout: Timeout = Timeout(30 seconds)
+
       IO(Http) ? Http.CloseAll
     }
   }
