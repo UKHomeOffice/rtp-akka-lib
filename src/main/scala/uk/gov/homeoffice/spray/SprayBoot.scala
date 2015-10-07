@@ -3,6 +3,7 @@ package uk.gov.homeoffice.spray
 import scala.util.Try
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.io.IO
+import akka.pattern.ask
 import spray.can.Http
 import spray.routing._
 import grizzled.slf4j.Logging
@@ -42,10 +43,15 @@ trait SprayBoot extends HttpService with RouteConcatenation with HasConfig with 
     bootHttpService(routeHttpService)
   }
 
-  private[spray] def bootHttpService(routeHttpService: ActorRef): Unit =
+  private[spray] def bootHttpService(routeHttpService: ActorRef): Unit = {
     IO(Http) ! Http.Bind(listener = routeHttpService,
                          interface = Try { config.getString("spray.can.server.host") } getOrElse "0.0.0.0",
                          port = Try { config.getInt("spray.can.server.port") } getOrElse 9100)
+
+    sys.addShutdownHook {
+      IO(Http) ? Http.CloseAll
+    }
+  }
 
   private class HttpRouting(route: Route)(implicit eh: ExceptionHandler, rh: RejectionHandler) extends HttpServiceActor {
     def receive: Receive = runRoute(route)
