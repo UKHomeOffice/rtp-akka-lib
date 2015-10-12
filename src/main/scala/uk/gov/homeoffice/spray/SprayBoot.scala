@@ -1,5 +1,6 @@
 package uk.gov.homeoffice.spray
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.Try
 import akka.actor.{ActorRef, ActorSystem, Props}
@@ -7,7 +8,14 @@ import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
 import spray.can.Http
+import spray.can.server.Stats
+import spray.http.HttpMethods.GET
+import spray.http.MediaTypes._
+import spray.http.StatusCodes.OK
+import spray.http.{HttpEntity, HttpRequest, HttpResponse, Uri}
 import spray.routing._
+import org.json4s.JValue
+import org.json4s.jackson.JsonMethods._
 import grizzled.slf4j.Logging
 import uk.gov.homeoffice.configuration.HasConfig
 
@@ -62,6 +70,33 @@ trait SprayBoot extends HttpService with RouteConcatenation with HasConfig with 
   }
 
   private class HttpRouting(route: Route)(implicit eh: ExceptionHandler, rh: RejectionHandler) extends HttpServiceActor {
-    def receive: Receive = runRoute(route)
+    implicit val timeout: Timeout = Timeout(10 seconds)
+
+    def receive: Receive = statsReceive orElse routesReceive
+
+    def statsReceive: Receive = {
+      case HttpRequest(GET, Uri.Path("/stats"), _, _, _) =>
+        val client = sender()
+
+        context.actorSelection("/user/IO-HTTP/listener-0") ? Http.GetStats onSuccess {
+          case s: Stats =>
+            val json: JValue = parse(s"""{
+              "statistics": {
+                "uptime": "${s.uptime}",
+                "total-requests": "${s.totalRequests}",
+                "open-requests": "${s.openRequests}",
+                "maximum-open-requests": "${s.maxOpenRequests}",
+                "total-connections": "${s.totalConnections}",
+                "open-connections": "${s.openConnections}",
+                "max-open-connections": "${s.maxOpenConnections}",
+                "request-timeouts": "${s.requestTimeouts}"
+              }
+            }""")
+
+            client ! HttpResponse(OK, HttpEntity(`application/json`, pretty(render(json))))
+        }
+    }
+
+    def routesReceive: Receive = runRoute(route)
   }
 }
