@@ -39,7 +39,7 @@ trait SprayBoot extends HttpService with RouteConcatenation with HasConfig with 
 
     val routes = routings.tail.foldLeft(routings.head.route) { (route, routing) => route ~ routing.route }
 
-    val routeHttpService = actorRefFactory.actorOf(Props(new HttpRouting(routes)(exceptionHandler, rejectionHandler)),
+    val routeHttpService = actorRefFactory.actorOf(HttpRouting.props(routes)(exceptionHandler, rejectionHandler),
                                                    Try { config.getString("spray.can.server.service") } getOrElse "http-routing-service")
 
     bootHttpService(routeHttpService)
@@ -55,6 +55,10 @@ trait SprayBoot extends HttpService with RouteConcatenation with HasConfig with 
 
       IO(Http) ? Http.CloseAll
     }
+  }
+
+  private object HttpRouting {
+    def props(route: Route)(implicit eh: ExceptionHandler, rh: RejectionHandler) = Props(new HttpRouting(route)(eh, rh))
   }
 
   private class HttpRouting(route: Route)(implicit eh: ExceptionHandler, rh: RejectionHandler) extends HttpServiceActor {
