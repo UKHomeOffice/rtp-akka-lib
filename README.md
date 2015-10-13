@@ -18,6 +18,27 @@ Introduction
 ------------
 Boot a microservice utilising functionality built on top of Spray.
 
+Create an application and include "routes" to expose an API to access via HTTP.
+Build up your own routes, noting that "service-statistics" route is automatically exposed for you and can be accessed as (for example):
+```bash
+http://localhost:9100/service-statistics
+```
+which would give you something like:
+```json
+{
+  statistics: {
+    uptime: "36663930295 nanoseconds"
+    total-requests: "2"
+    open-requests: "1"
+    maximum-open-requests: "1"
+    total-connections: "1"
+    open-connections: "1"
+    max-open-connections: "1"
+    request-timeouts: "0"
+  }
+}
+```
+
 Build and Deploy
 ----------------
 The project is built with SBT. On a Mac (sorry everyone else) do:

@@ -70,12 +70,12 @@ trait SprayBoot extends HttpService with RouteConcatenation with HasConfig with 
   }
 
   private class HttpRouting(route: Route)(implicit eh: ExceptionHandler, rh: RejectionHandler) extends HttpServiceActor {
-    implicit val timeout: Timeout = Timeout(10 seconds)
+    implicit val timeout: Timeout = Timeout(30 seconds)
 
-    def receive: Receive = statsReceive orElse routesReceive
+    def receive: Receive = statisticsReceive orElse routesReceive
 
-    def statsReceive: Receive = {
-      case HttpRequest(GET, Uri.Path("/stats"), _, _, _) =>
+    def statisticsReceive: Receive = {
+      case HttpRequest(GET, Uri.Path("/service-statistics"), _, _, _) =>
         val client = sender()
 
         context.actorSelection("/user/IO-HTTP/listener-0") ? Http.GetStats onSuccess {
