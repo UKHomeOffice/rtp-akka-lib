@@ -18,6 +18,7 @@ import org.json4s.JValue
 import org.json4s.jackson.JsonMethods._
 import grizzled.slf4j.Logging
 import uk.gov.homeoffice.configuration.HasConfig
+import uk.gov.homeoffice.duration._
 
 /**
  * Boot your application with your required routings e.g.
@@ -82,7 +83,7 @@ trait SprayBoot extends HttpService with RouteConcatenation with HasConfig with 
           case s: Stats =>
             val json: JValue = parse(s"""{
               "statistics": {
-                "uptime": "${s.uptime}",
+                "uptime": "${s.uptime.toPrettyString}",
                 "total-requests": "${s.totalRequests}",
                 "open-requests": "${s.openRequests}",
                 "maximum-open-requests": "${s.maxOpenRequests}",
