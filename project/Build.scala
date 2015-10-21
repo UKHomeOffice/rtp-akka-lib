@@ -31,21 +31,21 @@ object Build extends Build {
         "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases",
         "Kamon Repository" at "http://repo.kamon.io"),
       libraryDependencies ++= Seq(
-        "com.typesafe.akka" %% "akka-actor" % "2.3.12" withSources(),
-        "com.typesafe.akka" %% "akka-remote" % "2.3.12" withSources(),
+        "com.typesafe.akka" %% "akka-actor" % "2.4.0" withSources(),
+        "com.typesafe.akka" %% "akka-remote" % "2.4.0" withSources(),
+        "com.typesafe.akka" %% "akka-slf4j" % "2.4.0" withSources(),
         "io.spray" %% "spray-can" % "1.3.3" withSources() excludeAll ExclusionRule(organization = "org.json4s"),
-        "io.spray" %% "spray-routing" % "1.3.3" withSources() excludeAll ExclusionRule(organization = "org.json4s"),
-        "org.clapper" %% "grizzled-slf4j" % "1.0.2",
-        "ch.qos.logback" % "logback-classic" % "1.1.3"),
+        "io.spray" %% "spray-routing" % "1.3.3" withSources() excludeAll ExclusionRule(organization = "org.json4s")),
       libraryDependencies ++= Seq(
-        "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % Test withSources(),
+        "com.typesafe.akka" %% "akka-testkit" % "2.4.0" % Test withSources(),
         "io.spray" %% "spray-testkit" % "1.3.3" % Test withSources() excludeAll (ExclusionRule(organization = "org.specs2"), ExclusionRule(organization = "org.json4s"))
-      ))
+      )
+    )
 
   val testPath = "../rtp-test-lib"
   val ioPath = "../rtp-io-lib"
 
-  val root = if (new java.io.File(testPath).exists && sys.props.get("jenkins").isEmpty) {
+  val root = if (file(testPath).exists && sys.props.get("jenkins").isEmpty) {
     println("=====================")
     println("Build Locally domain ")
     println("=====================")
