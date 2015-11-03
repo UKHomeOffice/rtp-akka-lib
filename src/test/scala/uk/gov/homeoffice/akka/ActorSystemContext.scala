@@ -1,6 +1,7 @@
 package uk.gov.homeoffice.akka
 
 import java.util.UUID
+import scala.concurrent.Await
 import scala.concurrent.duration._
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKitBase}
@@ -19,8 +20,7 @@ abstract class ActorSystemContext(val config: Config = ConfigFactory.load) exten
       super.around(r)
     } finally {
       info(s"x Shutting down actor system $system")
-      system.shutdown()
-      system.awaitTermination(10 seconds)
+      Await.ready(system.terminate(), 10 seconds)
     }
   }
 }
