@@ -12,7 +12,7 @@ object Build extends Build {
     .settings(
       name := moduleName,
       organization := "uk.gov.homeoffice",
-      version := "1.1.0",
+      version := "1.2.0-SNAPSHOT",
       scalaVersion := "2.11.7",
       scalacOptions ++= Seq(
         "-feature",
