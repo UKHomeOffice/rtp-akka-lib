@@ -10,13 +10,13 @@ import org.specs2.mutable.Specification
 class SchedulerSpec extends Specification {
   "Actor" should {
     "be scheduled to act as a poller" in new ActorSystemContext {
-      val exampleSchedulerActor = system.actorOf(Props(new ExampleSchedulerActor), "exampleSchedulerActor")
+      val exampleSchedulerActor = system actorOf Props(new ExampleSchedulerActor)
       exampleSchedulerActor ! Scheduled
       expectMsg(Scheduled)
     }
 
     "not be scheduled to act as a poller" in new ActorSystemContext {
-      val exampleSchedulerActor = system.actorOf(Props(new ExampleSchedulerActor with NoSchedule), "exampleNoSchedulerActor")
+      val exampleSchedulerActor = system actorOf Props(new ExampleSchedulerActor with NoSchedule)
       exampleSchedulerActor ! Scheduled
       expectMsg(NotScheduled)
     }

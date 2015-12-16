@@ -2,14 +2,8 @@ package akka
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable}
+import akka.actor._
 import uk.gov.homeoffice.configuration.ConfigFactorySupport
-
-case object Scheduled
-
-case object NotScheduled
-
-case object Wakeup
 
 trait Scheduler extends ActorLogging with ConfigFactorySupport {
   this: Actor =>
@@ -26,7 +20,7 @@ trait Scheduler extends ActorLogging with ConfigFactorySupport {
   override def postStop(): Unit = if (cancellable != null) cancellable.cancel()
 
   override protected[akka] def aroundReceive(receive: Actor.Receive, msg: Any): Unit = msg match {
-    case Scheduled =>
+    case Scheduled | Scheduled(_) =>
       log.info(s"${sender()} asked if I am scheduled!")
       sender() ! (if (cancellable == null) NotScheduled else if (cancellable.isCancelled) NotScheduled else Scheduled)
 
@@ -34,3 +28,11 @@ trait Scheduler extends ActorLogging with ConfigFactorySupport {
       receive.applyOrElse(msg, unhandled)
   }
 }
+
+case object Wakeup
+
+case object Scheduled
+
+case class Scheduled(actorPath: ActorPath)
+
+case object NotScheduled
