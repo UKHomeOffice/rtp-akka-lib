@@ -9,7 +9,7 @@ import scala.concurrent.duration._
  * During a test, you would usually not want the actor to also be "woken up" by the scheduling mechanism, as this would probably interfere with the running test.
  */
 trait NoScheduling {
-  this: SchedulingActor[_] =>
+  this: Scheduling[_] =>
 
   val schedule = Schedule(initialDelay = 1 day)
 }

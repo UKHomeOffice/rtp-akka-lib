@@ -4,11 +4,11 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import akka.actor.Props
-import akka.{Schedule, Scheduled, SchedulingActor}
+import akka.actor.{Actor, Props}
+import akka.{Schedule, Scheduled, Scheduling}
 import org.specs2.mutable.Specification
 
-class SchedulingActorSpec extends Specification {
+class SchedulingSpec extends Specification {
   trait Context extends ActorSystemContext {
     system.eventStream.subscribe(self, classOf[Scheduled])
   }
@@ -16,7 +16,7 @@ class SchedulingActorSpec extends Specification {
   "Actor" should {
     "tell itself to do something more than once" in new Context {
       val actor = system actorOf Props {
-        new SchedulingActor[Unit] {
+        new Actor with Scheduling[Unit] {
           val schedule = Schedule()
           val scheduled = {}
         }
@@ -28,7 +28,7 @@ class SchedulingActorSpec extends Specification {
 
     "tell itself to do something more than once, waiting for future results before rescheduling is kicked off" in new Context {
       val actor = system actorOf Props {
-        new SchedulingActor[Any] {
+        new Actor with Scheduling[Any] {
           var futureScheduled = false
 
           val schedule = Schedule()
@@ -47,7 +47,7 @@ class SchedulingActorSpec extends Specification {
 
     "tell itself to do something only once" in new Context {
       val actor = system actorOf Props {
-        new SchedulingActor[Unit] {
+        new Actor with Scheduling[Unit] {
           override val schedule = Schedule(scheduleAfterSuccess = false)
 
           val scheduled = {}
@@ -60,7 +60,7 @@ class SchedulingActorSpec extends Specification {
 
     "tell itself to do something only once, but only after a non-default delay" in new Context {
       val actor = system actorOf Props {
-        new SchedulingActor[Unit] {
+        new Actor with Scheduling[Unit] {
           override val schedule = Schedule(initialDelay = 3 seconds, scheduleAfterSuccess = false)
 
           val scheduled = {}

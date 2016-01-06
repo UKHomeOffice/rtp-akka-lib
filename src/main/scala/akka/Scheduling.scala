@@ -6,7 +6,9 @@ import scala.concurrent.duration._
 import scala.util.Try
 import akka.actor.{ActorLogging, Actor}
 
-trait SchedulingActor[R] extends Actor with ActorLogging {
+trait Scheduling[R] extends ActorLogging {
+  this: Actor =>
+
   def schedule: Schedule
 
   def scheduled: R
