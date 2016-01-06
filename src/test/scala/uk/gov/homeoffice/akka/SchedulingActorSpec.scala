@@ -9,8 +9,12 @@ import akka.{Schedule, Scheduled, SchedulingActor}
 import org.specs2.mutable.Specification
 
 class SchedulingActorSpec extends Specification {
+  trait Context extends ActorSystemContext {
+    system.eventStream.subscribe(self, classOf[Scheduled])
+  }
+
   "Actor" should {
-    "tell itself to do something more than once" in new ActorSystemContext {
+    "tell itself to do something more than once" in new Context {
       val actor = system actorOf Props {
         new SchedulingActor[Unit] {
           val schedule = Schedule()
@@ -18,13 +22,11 @@ class SchedulingActorSpec extends Specification {
         }
       }
 
-      system.eventStream.subscribe(self, classOf[Scheduled])
-
       expectMsg(Scheduled(actor.path))
       expectMsg(Scheduled(actor.path))
     }
 
-    "tell itself to do something more than once, waiting for future results before rescheduling is kicked off" in new ActorSystemContext {
+    "tell itself to do something more than once, waiting for future results before rescheduling is kicked off" in new Context {
       val actor = system actorOf Props {
         new SchedulingActor[Any] {
           var futureScheduled = false
@@ -38,14 +40,12 @@ class SchedulingActorSpec extends Specification {
         }
       }
 
-      system.eventStream.subscribe(self, classOf[Scheduled])
-
       expectMsg(Scheduled(actor.path))
       expectNoMsg(2 seconds)
       expectMsg(Scheduled(actor.path))
     }
 
-    "tell itself to do something only once" in new ActorSystemContext {
+    "tell itself to do something only once" in new Context {
       val actor = system actorOf Props {
         new SchedulingActor[Unit] {
           override val schedule = Schedule(scheduleAfterSuccess = false)
@@ -54,13 +54,11 @@ class SchedulingActorSpec extends Specification {
         }
       }
 
-      system.eventStream.subscribe(self, classOf[Scheduled])
-
       expectMsg(Scheduled(actor.path))
       expectNoMsg()
     }
 
-    "tell itself to do something only once, but only after a non-default delay" in new ActorSystemContext {
+    "tell itself to do something only once, but only after a non-default delay" in new Context {
       val actor = system actorOf Props {
         new SchedulingActor[Unit] {
           override val schedule = Schedule(initialDelay = 3 seconds, scheduleAfterSuccess = false)
@@ -68,8 +66,6 @@ class SchedulingActorSpec extends Specification {
           val scheduled = {}
         }
       }
-
-      system.eventStream.subscribe(self, classOf[Scheduled])
 
       expectNoMsg(2 seconds)
       expectMsg(Scheduled(actor.path))
