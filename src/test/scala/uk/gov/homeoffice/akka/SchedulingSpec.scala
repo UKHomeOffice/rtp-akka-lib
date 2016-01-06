@@ -31,7 +31,7 @@ class SchedulingSpec extends Specification {
 
           val schedule = Schedule()
 
-          val scheduled = if (futureScheduled) {} else Future {
+          def scheduled = if (futureScheduled) {} else Future {
             futureScheduled = true
             TimeUnit.SECONDS.sleep(3)
           }
