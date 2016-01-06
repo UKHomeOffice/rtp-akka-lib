@@ -11,13 +11,13 @@ class SchedulerSpec extends Specification {
   "Actor" should {
     "be scheduled to act as a poller" in new ActorSystemContext {
       val exampleSchedulerActor = system actorOf Props(new ExampleSchedulerActor)
-      exampleSchedulerActor ! Scheduled
-      expectMsg(Scheduled)
+      exampleSchedulerActor ! IsScheduled
+      expectMsgType[Scheduled]
     }
 
     "not be scheduled to act as a poller" in new ActorSystemContext {
       val exampleSchedulerActor = system actorOf Props(new ExampleSchedulerActor with NoSchedule)
-      exampleSchedulerActor ! Scheduled
+      exampleSchedulerActor ! IsScheduled
       expectMsg(NotScheduled)
     }
   }

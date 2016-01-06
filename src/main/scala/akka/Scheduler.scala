@@ -20,9 +20,9 @@ trait Scheduler extends ActorLogging with ConfigFactorySupport {
   override def postStop(): Unit = if (cancellable != null) cancellable.cancel()
 
   override protected[akka] def aroundReceive(receive: Actor.Receive, msg: Any): Unit = msg match {
-    case Scheduled | Scheduled(_) =>
+    case IsScheduled =>
       log.info(s"${sender()} asked if I am scheduled!")
-      sender() ! (if (cancellable == null) NotScheduled else if (cancellable.isCancelled) NotScheduled else Scheduled)
+      sender() ! (if (cancellable == null) NotScheduled else if (cancellable.isCancelled) NotScheduled else Scheduled(self.path))
 
     case _ =>
       receive.applyOrElse(msg, unhandled)
@@ -31,7 +31,7 @@ trait Scheduler extends ActorLogging with ConfigFactorySupport {
 
 case object Wakeup
 
-case object Scheduled
+case object IsScheduled
 
 case class Scheduled(actorPath: ActorPath)
 
