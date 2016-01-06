@@ -13,7 +13,8 @@ class SchedulingSpec extends Specification {
     "tell itself to do something more than once" in new ActorSystemContext {
       val actor = system actorOf Props {
         new Actor with Scheduling[Unit] {
-          def scheduled = {}
+          val schedule = Schedule()
+          val scheduled = {}
         }
       }
 
@@ -28,7 +29,9 @@ class SchedulingSpec extends Specification {
         new Actor with Scheduling[Any] {
           var futureScheduled = false
 
-          def scheduled = if (futureScheduled) {} else Future {
+          val schedule = Schedule()
+
+          val scheduled = if (futureScheduled) {} else Future {
             futureScheduled = true
             TimeUnit.SECONDS.sleep(3)
           }
@@ -47,7 +50,7 @@ class SchedulingSpec extends Specification {
         new Actor with Scheduling[Unit] {
           override val schedule = Schedule(scheduleAfterSuccess = false)
 
-          def scheduled = {}
+          val scheduled = {}
         }
       }
 
@@ -60,9 +63,9 @@ class SchedulingSpec extends Specification {
     "tell itself to do something only once, but only after a non-default delay" in new ActorSystemContext {
       val actor = system actorOf Props {
         new Actor with Scheduling[Unit] {
-          override val schedule = Schedule(delay = 3 seconds, scheduleAfterSuccess = false)
+          override val schedule = Schedule(initialDelay = 3 seconds, scheduleAfterSuccess = false)
 
-          def scheduled = {}
+          val scheduled = {}
         }
       }
 

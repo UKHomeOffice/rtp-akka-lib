@@ -10,11 +10,11 @@ import grizzled.slf4j.Logging
 trait Scheduling[R] extends Logging {
   this: Actor =>
 
-  val schedule = Schedule()
+  def schedule: Schedule
 
   def scheduled: R
 
-  override def preStart(): Unit = doSchedule()
+  override def preStart(): Unit = doSchedule(schedule.initialDelay)
 
   override def receive: Receive = {
     case Wakeup =>
@@ -23,17 +23,21 @@ trait Scheduling[R] extends Logging {
 
       Try {
         scheduled match {
-          case r: Future[_] if schedule.awaitOnFutures && schedule.scheduleAfterSuccess => r onComplete { _ => doSchedule() }
-          case _ if schedule.scheduleAfterSuccess => doSchedule() // TODO Scheduled result of say Seq[Future], then await each Future if configured
+          case r: Future[_] if schedule.awaitOnFutures && schedule.scheduleAfterSuccess => r onComplete { _ => doSchedule(schedule.delay) }
+          case _ if schedule.scheduleAfterSuccess => doSchedule(schedule.delay) // TODO Scheduled result of say Seq[Future], then await each Future if configured
         }
       } recover {
         case t: Throwable if schedule.scheduleAfterError =>
           error(s"Scheduling caused an exception which is being IGNORED and so this actor will not bubble up the error to its supervisor: $t")
-          doSchedule()
+          doSchedule(schedule.delay)
       }
   }
 
-  private def doSchedule() = context.system.scheduler.scheduleOnce(schedule.delay, self, Wakeup)
+  private def doSchedule(delay: FiniteDuration) = context.system.scheduler.scheduleOnce(delay, self, Wakeup)
 }
 
-case class Schedule(delay: FiniteDuration = 0 seconds, scheduleAfterSuccess: Boolean = true, scheduleAfterError: Boolean = false, awaitOnFutures: Boolean = true)
+case class Schedule(initialDelay: FiniteDuration = 0 seconds,
+                    delay: FiniteDuration = 0 seconds,
+                    scheduleAfterSuccess: Boolean = true,
+                    scheduleAfterError: Boolean = false,
+                    awaitOnFutures: Boolean = true)
