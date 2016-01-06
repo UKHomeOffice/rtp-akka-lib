@@ -4,21 +4,18 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Try
-import akka.actor.Actor
-import grizzled.slf4j.Logging
+import akka.actor.{ActorLogging, Actor}
 
-trait Scheduling[R] extends Logging {
-  this: Actor =>
-
+trait SchedulingActor[R] extends Actor with ActorLogging {
   def schedule: Schedule
 
   def scheduled: R
 
   override def preStart(): Unit = doSchedule(schedule.initialDelay)
 
-  override def receive: Receive = {
+  override final def receive: Receive = {
     case Wakeup =>
-      trace("Woken up")
+      log.debug("Woken up")
       context.system.eventStream.publish(Scheduled(self.path))
 
       Try {
@@ -28,7 +25,7 @@ trait Scheduling[R] extends Logging {
         }
       } recover {
         case t: Throwable if schedule.scheduleAfterError =>
-          error(s"Scheduling caused an exception which is being IGNORED and so this actor will not bubble up the error to its supervisor: $t")
+          log.error(s"Scheduling caused an exception which is being IGNORED and so this actor will not bubble up the error to its supervisor: $t")
           doSchedule(schedule.delay)
       }
   }

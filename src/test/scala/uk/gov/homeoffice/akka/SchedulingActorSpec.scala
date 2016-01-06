@@ -4,15 +4,15 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import akka.actor.{Actor, Props}
-import akka.{Schedule, Scheduled, Scheduling}
+import akka.actor.Props
+import akka.{Schedule, Scheduled, SchedulingActor}
 import org.specs2.mutable.Specification
 
-class SchedulingSpec extends Specification {
+class SchedulingActorSpec extends Specification {
   "Actor" should {
     "tell itself to do something more than once" in new ActorSystemContext {
       val actor = system actorOf Props {
-        new Actor with Scheduling[Unit] {
+        new SchedulingActor[Unit] {
           val schedule = Schedule()
           val scheduled = {}
         }
@@ -26,7 +26,7 @@ class SchedulingSpec extends Specification {
 
     "tell itself to do something more than once, waiting for future results before rescheduling is kicked off" in new ActorSystemContext {
       val actor = system actorOf Props {
-        new Actor with Scheduling[Any] {
+        new SchedulingActor[Any] {
           var futureScheduled = false
 
           val schedule = Schedule()
@@ -47,7 +47,7 @@ class SchedulingSpec extends Specification {
 
     "tell itself to do something only once" in new ActorSystemContext {
       val actor = system actorOf Props {
-        new Actor with Scheduling[Unit] {
+        new SchedulingActor[Unit] {
           override val schedule = Schedule(scheduleAfterSuccess = false)
 
           val scheduled = {}
@@ -62,7 +62,7 @@ class SchedulingSpec extends Specification {
 
     "tell itself to do something only once, but only after a non-default delay" in new ActorSystemContext {
       val actor = system actorOf Props {
-        new Actor with Scheduling[Unit] {
+        new SchedulingActor[Unit] {
           override val schedule = Schedule(initialDelay = 3 seconds, scheduleAfterSuccess = false)
 
           val scheduled = {}
