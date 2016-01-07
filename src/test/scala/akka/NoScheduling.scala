@@ -8,8 +8,8 @@ import scala.concurrent.duration._
  * When testing a scheduling actor's functionality, messages sent to it by a specification can be processed and assertions made on the outcome of said processing.
  * During a test, you would usually not want the actor to also be "woken up" by the scheduling mechanism, as this would probably interfere with the running test.
  */
-trait NoScheduling {
-  this: Scheduling[_] =>
+trait NoScheduling[R] {
+  this: Scheduling[R] =>
 
-  val schedule = Schedule(initialDelay = 1 day)
+  override val schedule: Schedule = Schedule(initialDelay = 1 day)
 }

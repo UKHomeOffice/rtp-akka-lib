@@ -9,7 +9,7 @@ import akka.actor.{ActorLogging, Actor}
 trait Scheduling[R] extends ActorLogging {
   this: Actor =>
 
-  def schedule: Schedule
+  val schedule: Schedule
 
   def scheduled: R
 
