@@ -35,8 +35,8 @@ trait SprayBoot extends HttpService with RouteConcatenation with HasConfig with 
 
   implicit lazy val actorRefFactory = ActorSystem(Try { config.getString("spray.can.server.name") } getOrElse "spray-can")
 
-  sys.addShutdownHook {
-    actorRefFactory.shutdown()
+  sys addShutdownHook {
+    actorRefFactory.terminate()
   }
 
   implicit def routingToSeq(r: Routing): Seq[Routing] = Seq(r)
@@ -59,7 +59,7 @@ trait SprayBoot extends HttpService with RouteConcatenation with HasConfig with 
                          interface = Try { config.getString("spray.can.server.host") } getOrElse "0.0.0.0",
                          port = Try { config.getInt("spray.can.server.port") } getOrElse 9100)
 
-    sys.addShutdownHook {
+    sys addShutdownHook {
       implicit val timeout: Timeout = Timeout(30 seconds)
 
       IO(Http) ? Http.CloseAll
