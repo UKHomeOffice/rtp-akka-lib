@@ -1,4 +1,4 @@
-package akka
+package akka.schedule
 
 import scala.concurrent.duration._
 

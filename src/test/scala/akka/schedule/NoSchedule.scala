@@ -1,4 +1,4 @@
-package akka
+package akka.schedule
 
 import akka.actor.Cancellable
 

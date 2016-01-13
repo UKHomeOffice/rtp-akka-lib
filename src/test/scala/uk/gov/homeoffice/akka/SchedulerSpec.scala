@@ -2,9 +2,10 @@ package uk.gov.homeoffice.akka
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import akka._
 import akka.actor.{Actor, Cancellable, Props}
 import akka.event.LoggingReceive
+import akka.schedule.Protocol.{IsScheduled, NotScheduled, Scheduled}
+import akka.schedule._
 import org.specs2.mutable.Specification
 
 class SchedulerSpec extends Specification {
@@ -24,9 +25,9 @@ class SchedulerSpec extends Specification {
 }
 
 class ExampleSchedulerActor extends Actor with Scheduler {
-  lazy val schedule: Cancellable = context.system.scheduler.schedule(initialDelay = 1 second, interval = 5 seconds, receiver = self, message = Wakeup)
+  lazy val schedule: Cancellable = context.system.scheduler.schedule(initialDelay = 1 second, interval = 5 seconds, receiver = self, message = Schedule)
 
   def receive = LoggingReceive {
-    case Wakeup => println("Hello World!")
+    case Schedule => println("Hello World!")
   }
 }

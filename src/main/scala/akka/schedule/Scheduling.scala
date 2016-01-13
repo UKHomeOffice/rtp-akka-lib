@@ -1,12 +1,16 @@
-package akka
+package akka.schedule
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import akka.actor.{Actor, ActorLogging}
+import akka.schedule.Protocol._
+import akka.serialization.Serialization.serializedActorPath
 
 trait Scheduling[R] extends ActorLogging {
   this: Actor =>
+
+  log.info(s"Scheduling configured for ${serializedActorPath(self)}")
 
   val schedule: Schedule
 
@@ -16,27 +20,45 @@ trait Scheduling[R] extends ActorLogging {
 
   override final def receive: Receive = {
     case Wakeup =>
-      log.debug("Woken up")
+      log.info("Woken up")
+      val client = sender()
+      client ! scheduled
+
+    case Schedule =>
+      log.debug("Triggered schedule")
       context.system.eventStream.publish(Scheduled(self.path))
+
+      val client = sender()
 
       try {
         scheduled match {
-          case r: Future[_] if schedule.awaitOnFutures && schedule.scheduleAfterSuccess => r onComplete { _ => doSchedule(schedule.delay) }
-          case _ if schedule.scheduleAfterSuccess => doSchedule(schedule.delay) // TODO Scheduled result of say Seq[Future], then await each Future if configured
-          case _ =>
+          case result: Future[_] if schedule.awaitOnFutures && schedule.scheduleAfterSuccess =>
+            result onComplete { r =>
+              client ! r
+              doSchedule(schedule.delay)
+            }
+
+          case result if schedule.scheduleAfterSuccess =>
+            client ! result
+            doSchedule(schedule.delay) // TODO Scheduled result of say Seq[Future], then await each Future if configured
+
+          case result =>
+            client ! result
         }
       } catch {
         case t: Throwable if schedule.scheduleAfterError =>
           log.error(s"Scheduling caused an exception which is being IGNORED and so this actor will not bubble up the error to its supervisor: $t")
+          client ! t
           doSchedule(schedule.delay)
 
         case t: Throwable =>
           log.error(s"Exception in scheduling")
+          client ! t
           throw t
       }
   }
 
-  private def doSchedule(delay: FiniteDuration) = context.system.scheduler.scheduleOnce(delay, self, Wakeup)
+  private def doSchedule(delay: FiniteDuration) = context.system.scheduler.scheduleOnce(delay, self, Schedule)
 }
 
 case class Schedule(initialDelay: FiniteDuration = 0 seconds,
