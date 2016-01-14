@@ -24,7 +24,7 @@ Build up your own routes, noting that "service-statistics" route is automaticall
 http://localhost:9100/service-statistics
 ```
 which would give you something like:
-```json
+```javascript
 {
   statistics: {
     uptime: "36663930295 nanoseconds"
