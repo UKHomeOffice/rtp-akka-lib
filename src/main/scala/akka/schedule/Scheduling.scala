@@ -3,14 +3,12 @@ package akka.schedule
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import akka.ActorInitialisationLog
 import akka.actor.{Actor, ActorLogging}
 import akka.schedule.Protocol._
-import akka.serialization.Serialization.serializedActorPath
 
-trait Scheduling[R] extends ActorLogging {
+trait Scheduling[R] extends ActorLogging with ActorInitialisationLog {
   this: Actor =>
-
-  log.info(s"Scheduling configured for ${serializedActorPath(self)}")
 
   val schedule: Schedule
 

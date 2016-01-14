@@ -2,15 +2,13 @@ package akka.schedule
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
+import akka.ActorInitialisationLog
 import akka.actor._
 import akka.schedule.Protocol._
-import akka.serialization.Serialization.serializedActorPath
 import uk.gov.homeoffice.configuration.ConfigFactorySupport
 
-trait Scheduler extends ActorLogging with ConfigFactorySupport {
+trait Scheduler extends ActorLogging with ActorInitialisationLog with ConfigFactorySupport {
   this: Actor =>
-
-  log.info(s"Scheduling configured for ${serializedActorPath(self)}")
 
   private var cancellable: Cancellable = _
 
