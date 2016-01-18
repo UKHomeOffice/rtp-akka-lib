@@ -1,18 +1,20 @@
-package akka
+package akka.schedule
 
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import akka.ActorInitialisationLog
 import akka.actor._
+import akka.schedule.Protocol._
 import uk.gov.homeoffice.configuration.ConfigFactorySupport
 
-trait Scheduler extends ActorLogging with ConfigFactorySupport {
+trait Scheduler extends ActorLogging with ActorInitialisationLog with ConfigFactorySupport {
   this: Actor =>
 
   private var cancellable: Cancellable = _
 
   val schedule: Cancellable
 
-  def schedule(initialDelay: Duration = 0 seconds, interval: Duration, receiver: ActorRef = self, message: Any = Wakeup) =
+  def schedule(initialDelay: Duration = 0 seconds, interval: Duration, receiver: ActorRef = self, message: Any = Schedule) =
     context.system.scheduler.schedule(initialDelay, interval, receiver, message)
 
   override def preStart(): Unit = cancellable = schedule
@@ -28,11 +30,3 @@ trait Scheduler extends ActorLogging with ConfigFactorySupport {
       receive.applyOrElse(msg, unhandled)
   }
 }
-
-case object Wakeup
-
-case object IsScheduled
-
-case class Scheduled(actorPath: ActorPath)
-
-case object NotScheduled

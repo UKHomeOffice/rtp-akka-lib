@@ -5,7 +5,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import akka.actor.{Actor, Props}
-import akka.{Schedule, Scheduled, Scheduling}
+import akka.schedule.Protocol.{Wakeup, Scheduled}
+import akka.schedule.{NoScheduling, Schedule, Scheduling}
 import org.specs2.mutable.Specification
 
 class SchedulingSpec extends Specification {
@@ -14,6 +15,18 @@ class SchedulingSpec extends Specification {
   }
 
   "Actor" should {
+    "be woken up to do its work just once" in new Context {
+      val actor = system actorOf Props {
+        new Actor with Scheduling[Boolean] with NoScheduling[Boolean] {
+          def scheduled = true
+        }
+      }
+
+      actor ! Wakeup
+      expectMsg(true)
+      expectNoMsg(5 seconds)
+    }
+
     "tell itself to do something more than once" in new Context {
       val actor = system actorOf Props {
         new Actor with Scheduling[Unit] {
