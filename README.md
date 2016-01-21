@@ -74,6 +74,41 @@ The project utilises Artifactory to resolve in-house modules. Do the following:
 
 Note that initially this project refers to some libraries held within a private Artifactory. However, those libraries have been open sourced under https://github.com/UKHomeOffice.
 
+Testing
+-------
+Note regarding testing of application that utilises Spray.
+At the time of writing this, Spray was in maintenance mode because of its migration to Akka HTTP.
+Unfortunately, Spray uses a now out of date Specs2 library. This can be resolved by adding the following class into the package "spray.testkit" within the "test" directory of your application:
+```scala
+package spray.testkit
+
+import org.specs2.execute.{ Failure, FailureException }
+import org.specs2.specification.core.{ Fragments, SpecificationStructure }
+import org.specs2.specification.create.DefaultFragmentFactory
+
+/**
+ * Spray's built-in support for specs2 is built against specs2 2.x, not 3.x.
+ * So you cannot use the Specs2Interface from spray but need to compile one yourself (against specs2 3.x).
+ * That is what this code does, taken from https://gist.github.com/gmalouf/51a8722b50f6a9d30404
+ * Note that the build has to exclude Specs2 as a transitive dependency from the Spray testkit.
+ */
+trait Specs2Interface extends TestFrameworkInterface with SpecificationStructure {
+  def failTest(msg: String) = {
+    val trace = new Exception().getStackTrace.toList
+    val fixedTrace = trace.drop(trace.indexWhere(_.getClassName.startsWith("org.specs2")) - 1)
+    throw new FailureException(Failure(msg, stackTrace = fixedTrace))
+  }
+
+  override def map(fs: ⇒ Fragments) = super.map(fs).append(DefaultFragmentFactory.step(cleanUp()))
+}
+
+trait NoAutoHtmlLinkFragments extends org.specs2.specification.dsl.ReferenceDsl {
+  override def linkFragment(alias: String) = super.linkFragment(alias)
+
+  override def seeFragment(alias: String) = super.seeFragment(alias)
+}
+```
+
 SBT - Revolver
 --------------
 sbt-revolver is a plugin for SBT enabling a super-fast development turnaround for your Scala applications:
