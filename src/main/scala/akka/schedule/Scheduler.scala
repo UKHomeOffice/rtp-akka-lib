@@ -4,7 +4,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import akka.ActorInitialisationLog
 import akka.actor._
-import akka.schedule.Protocol._
 import uk.gov.homeoffice.configuration.ConfigFactorySupport
 
 trait Scheduler extends ActorLogging with ActorInitialisationLog with ConfigFactorySupport {
@@ -14,7 +13,7 @@ trait Scheduler extends ActorLogging with ActorInitialisationLog with ConfigFact
 
   val schedule: Cancellable
 
-  def schedule(initialDelay: Duration = 0 seconds, interval: Duration, receiver: ActorRef = self, message: Any = Schedule) =
+  def schedule(initialDelay: Duration = 0 seconds, interval: Duration, receiver: ActorRef = self, message: Any = Protocol.Schedule) =
     context.system.scheduler.schedule(initialDelay, interval, receiver, message)
 
   override def preStart(): Unit = cancellable = schedule
@@ -22,9 +21,9 @@ trait Scheduler extends ActorLogging with ActorInitialisationLog with ConfigFact
   override def postStop(): Unit = if (cancellable != null) cancellable.cancel()
 
   override protected[akka] def aroundReceive(receive: Actor.Receive, msg: Any): Unit = msg match {
-    case IsScheduled =>
+    case Protocol.IsScheduled =>
       log.info(s"${sender()} asked if I am scheduled!")
-      sender() ! (if (cancellable == null) NotScheduled else if (cancellable.isCancelled) NotScheduled else Scheduled(self.path))
+      sender() ! (if (cancellable == null) Protocol.NotScheduled else if (cancellable.isCancelled) Protocol.NotScheduled else Protocol.Scheduled(self.path))
 
     case _ =>
       receive.applyOrElse(msg, unhandled)
