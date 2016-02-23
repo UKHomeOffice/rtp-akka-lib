@@ -3,9 +3,10 @@ package uk.gov.homeoffice.spray
 import spray.http.MediaTypes._
 import spray.http.StatusCodes._
 import org.json4s._
+import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
 
-class ExampleRoutingSpec extends RouteSpecification {
+class ExampleRoutingSpec extends Specification with RouteSpecification {
   trait Context extends Scope with ExampleRouting
 
   "Example routing" should {
