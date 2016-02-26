@@ -155,10 +155,10 @@ Example Usage
   
   trait ExampleRouting1 extends Routing {
    val route =
-     pathPrefix("example") {
+     pathPrefix("example1") {
        pathEndOrSingleSlash {
          get {
-           complete { JObject("status" -> JString("Congratulations")) }
+           complete { JObject("status" -> JString("Congratulations 1")) }
          }
        }
      }
@@ -168,10 +168,10 @@ Example Usage
     
   trait ExampleRouting2 extends Routing {
    val route =
-     pathPrefix("example") {
+     pathPrefix("example2") {
        pathEndOrSingleSlash {
          get {
-           complete { JObject("status" -> JString("Congratulations")) }
+           complete { JObject("status" -> JString("Congratulations 2")) }
          }
        }
      }
@@ -195,4 +195,9 @@ Noting that a "configuration" such as application.conf must be provided e.g.
     service = "example-http-routing-service"
     remote-address-header = on
   }
+```
+
+To run ExampleBoot:
+```bash
+sbt test:run
 ```
