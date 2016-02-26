@@ -5,7 +5,7 @@ import spray.revolver.RevolverPlugin._
 object Build extends Build {
   val moduleName = "rtp-akka-lib"
 
-  lazy val akka = Project(id = moduleName, base = file("."))
+  val root = Project(id = moduleName, base = file("."))
     .configs(IntegrationTest)
     .settings(Revolver.settings)
     .settings(Defaults.itSettings: _*)
@@ -42,31 +42,16 @@ object Build extends Build {
         "io.spray" %% "spray-testkit" % "1.3.3" % Test withSources() excludeAll (ExclusionRule(organization = "org.specs2"), ExclusionRule(organization = "org.json4s"))
       )
     )
+    .settings(libraryDependencies ++= {
+      val `rtp-io-lib-version` = "1.2.0-SNAPSHOT"
+      val `rtp-test-lib-version` = "1.2.0-SNAPSHOT"
 
-  val testPath = "../rtp-test-lib"
-  val ioPath = "../rtp-io-lib"
-
-  val root = if (file(testPath).exists && sys.props.get("jenkins").isEmpty) {
-    println("=====================")
-    println("Build Locally domain ")
-    println("=====================")
-
-    val testLib = ProjectRef(file(testPath), "rtp-test-lib")
-    val ioLib = ProjectRef(file(ioPath), "rtp-io-lib")
-
-    akka.dependsOn(testLib % "test->test;compile->compile")
-        .dependsOn(ioLib % "test->test;compile->compile")
-  } else {
-    println("========================")
-    println("Build on Jenkins domain ")
-    println("========================")
-
-    akka.settings(
-      libraryDependencies ++= Seq(
-        "uk.gov.homeoffice" %% "rtp-test-lib" % "1.0" withSources(),
-        "uk.gov.homeoffice" %% "rtp-test-lib" % "1.0" % Test classifier "tests" withSources(),
-        "uk.gov.homeoffice" %% "rtp-io-lib" % "1.1.0" withSources(),
-        "uk.gov.homeoffice" %% "rtp-io-lib" % "1.1.0" % Test classifier "tests" withSources()
-      ))
-  }
+      Seq(
+        "uk.gov.homeoffice" %% "rtp-io-lib" % `rtp-io-lib-version` withSources(),
+        "uk.gov.homeoffice" %% "rtp-test-lib" % `rtp-test-lib-version` withSources()
+      ) ++ Seq(
+        "uk.gov.homeoffice" %% "rtp-io-lib" % `rtp-io-lib-version` % Test classifier "tests" withSources(),
+        "uk.gov.homeoffice" %% "rtp-test-lib" % `rtp-test-lib-version` % Test classifier "tests" withSources()
+      )
+    })
 }
