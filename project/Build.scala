@@ -12,7 +12,7 @@ object Build extends Build {
     .settings(
       name := moduleName,
       organization := "uk.gov.homeoffice",
-      version := "1.5.0-SNAPSHOT",
+      version := "1.5.0",
       scalaVersion := "2.11.8",
       scalacOptions ++= Seq(
         "-feature",
@@ -36,8 +36,8 @@ object Build extends Build {
     .settings(libraryDependencies ++= {
       val `akka-version` = "2.4.0"
       val `spray-version` = "1.3.3"
-      val `rtp-io-lib-version` = "1.2.0-SNAPSHOT"
-      val `rtp-test-lib-version` = "1.2.0-SNAPSHOT"
+      val `rtp-io-lib-version` = "1.6.0"
+      val `rtp-test-lib-version` = "1.2.0"
 
       Seq(
         "com.typesafe.akka" %% "akka-actor" % `akka-version` withSources(),
