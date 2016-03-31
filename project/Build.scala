@@ -34,7 +34,7 @@ object Build extends Build {
       )
     )
     .settings(libraryDependencies ++= {
-      val `akka-version` = "2.4.0"
+      val `akka-version` = "2.4.2"
       val `spray-version` = "1.3.3"
       val `rtp-io-lib-version` = "1.7.2-SNAPSHOT"
       val `rtp-test-lib-version` = "1.2.1"
