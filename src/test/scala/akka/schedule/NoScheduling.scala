@@ -1,6 +1,6 @@
 package akka.schedule
 
-import scala.concurrent.duration._
+import akka.actor.Actor
 
 /**
  * Why provide a "no scheduling" such that a scheduling Actor will not "wake up" and perform its duties?
@@ -9,7 +9,7 @@ import scala.concurrent.duration._
  * During a test, you would usually not want the actor to also be "woken up" by the scheduling mechanism, as this would probably interfere with the running test.
  */
 trait NoScheduling {
-  this: Scheduling[_] =>
+  this: Actor with Scheduling[_] =>
 
-  val schedule: Schedule = Schedule(initialDelay = 1 day)
+  override def preStart() = ()
 }

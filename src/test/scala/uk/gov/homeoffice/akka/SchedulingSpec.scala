@@ -18,6 +18,7 @@ class SchedulingSpec extends Specification {
     "be woken up to do its work just once" in new Context {
       val actor = system actorOf Props {
         new Actor with Scheduling[Boolean] with NoScheduling {
+          val schedule = null
           def scheduled = true
         }
       }
