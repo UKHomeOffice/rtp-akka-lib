@@ -15,10 +15,10 @@ abstract class ActorSystemContext(val config: Config = ConfigFactory.load) exten
   implicit lazy val system: ActorSystem = ActorSystem(UUID.randomUUID().toString, config)
 
   override def around[R: AsResult](r: => R): Result = try {
-    info(s"+ Started actor system $system")
+    info(s"Started actor system $system")
     super.around(r)
   } finally {
-    info(s"x Shutting down actor system $system")
+    info(s"Shutting down actor system $system")
     Await.ready(system.terminate(), 10 seconds)
   }
 }
