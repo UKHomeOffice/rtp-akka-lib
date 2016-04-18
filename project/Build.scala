@@ -12,7 +12,6 @@ object Build extends Build {
     .settings(
       name := moduleName,
       organization := "uk.gov.homeoffice",
-      version := "1.6.5",
       scalaVersion := "2.11.8",
       scalacOptions ++= Seq(
         "-feature",
@@ -36,7 +35,7 @@ object Build extends Build {
     .settings(libraryDependencies ++= {
       val `akka-version` = "2.4.2"
       val `spray-version` = "1.3.3"
-      val `rtp-io-lib-version` = "1.7.6"
+      val `rtp-io-lib-version` = "1.7.11-SNAPSHOT"
       val `rtp-test-lib-version` = "1.2.3"
 
       Seq(
