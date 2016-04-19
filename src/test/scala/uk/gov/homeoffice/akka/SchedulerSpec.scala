@@ -4,9 +4,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import akka.actor.{Actor, Cancellable, Props}
 import akka.event.LoggingReceive
-import akka.schedule.Protocol.{IsScheduled, NotScheduled, Scheduled}
-import akka.schedule._
 import org.specs2.mutable.Specification
+import uk.gov.homeoffice.akka.schedule.Protocol.{IsScheduled, NotScheduled, Scheduled}
+import uk.gov.homeoffice.akka.schedule.{NoSchedule, Schedule, Scheduler}
 
 class SchedulerSpec extends Specification {
   "Actor" should {

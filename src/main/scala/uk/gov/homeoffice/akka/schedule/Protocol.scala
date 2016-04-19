@@ -1,4 +1,4 @@
-package akka.schedule
+package uk.gov.homeoffice.akka.schedule
 
 import akka.actor.ActorPath
 

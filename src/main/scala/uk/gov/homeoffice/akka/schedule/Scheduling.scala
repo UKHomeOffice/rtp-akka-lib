@@ -1,11 +1,10 @@
-package akka.schedule
+package uk.gov.homeoffice.akka.schedule
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import akka.ActorInitialisationLog
 import akka.actor.{Actor, ActorLogging}
-import akka.schedule.Protocol._
+import uk.gov.homeoffice.akka.schedule.Protocol.{Scheduled, Wakeup}
 
 trait Scheduling[R] extends ActorLogging with ActorInitialisationLog {
   this: Actor =>

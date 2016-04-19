@@ -5,9 +5,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import akka.actor.{Actor, Props}
-import akka.schedule.Protocol.{Wakeup, Scheduled}
-import akka.schedule.{NoScheduling, Schedule, Scheduling}
 import org.specs2.mutable.Specification
+import uk.gov.homeoffice.akka.schedule.Protocol.{Scheduled, Wakeup}
+import uk.gov.homeoffice.akka.schedule.{NoScheduling, Schedule, Scheduling}
 
 class SchedulingSpec extends Specification {
   trait Context extends ActorSystemContext {
