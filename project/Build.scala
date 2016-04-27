@@ -44,7 +44,7 @@ object Build extends Build {
         "com.typesafe.akka" %% "akka-stream" % `akka-version` withSources(),
         "com.typesafe.akka" %% "akka-slf4j" % `akka-version` withSources(),
         "io.spray" %% "spray-can" % `spray-version` withSources() excludeAll ExclusionRule(organization = "org.json4s"),
-        "io.spray" %% "spray-routing" % `spray-version` withSources() excludeAll ExclusionRule(organization = "org.json4s"),
+        "io.spray" %% "spray-routing-shapeless2" % `spray-version` withSources() excludeAll ExclusionRule(organization = "org.json4s"),
         "uk.gov.homeoffice" %% "rtp-io-lib" % `rtp-io-lib-version` withSources(),
         "uk.gov.homeoffice" %% "rtp-test-lib" % `rtp-test-lib-version` withSources()
       ) ++ Seq(
