@@ -35,7 +35,7 @@ object Build extends Build {
     .settings(libraryDependencies ++= {
       val `akka-version` = "2.4.4"
       val `spray-version` = "1.3.3"
-      val `rtp-io-lib-version` = "1.7.13"
+      val `rtp-io-lib-version` = "1.7.14"
       val `rtp-test-lib-version` = "1.2.4"
 
       Seq(
@@ -43,13 +43,13 @@ object Build extends Build {
         "com.typesafe.akka" %% "akka-remote" % `akka-version` withSources(),
         "com.typesafe.akka" %% "akka-stream" % `akka-version` withSources(),
         "com.typesafe.akka" %% "akka-slf4j" % `akka-version` withSources(),
-        "io.spray" %% "spray-can" % `spray-version` withSources() excludeAll ExclusionRule(organization = "org.json4s"),
+        "io.spray" %% "spray-can" % `spray-version` withSources() excludeAll ExclusionRule(organization = "org.json4s") exclude("io.spray", "spray-routing"),
         "io.spray" %% "spray-routing-shapeless2" % `spray-version` withSources() excludeAll ExclusionRule(organization = "org.json4s"),
         "uk.gov.homeoffice" %% "rtp-io-lib" % `rtp-io-lib-version` withSources(),
         "uk.gov.homeoffice" %% "rtp-test-lib" % `rtp-test-lib-version` withSources()
       ) ++ Seq(
         "com.typesafe.akka" %% "akka-testkit" % `akka-version` % Test withSources(),
-        "io.spray" %% "spray-testkit" % `spray-version` % Test withSources() excludeAll (ExclusionRule(organization = "org.specs2"), ExclusionRule(organization = "org.json4s")),
+        "io.spray" %% "spray-testkit" % `spray-version` % Test withSources() excludeAll (ExclusionRule(organization = "org.specs2"), ExclusionRule(organization = "org.json4s")) exclude("io.spray", "spray-routing"),
         "uk.gov.homeoffice" %% "rtp-io-lib" % `rtp-io-lib-version` % Test classifier "tests" withSources(),
         "uk.gov.homeoffice" %% "rtp-test-lib" % `rtp-test-lib-version` % Test classifier "tests" withSources()
       )
