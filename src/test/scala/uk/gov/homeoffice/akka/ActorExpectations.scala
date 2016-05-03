@@ -1,9 +1,8 @@
-package org.specs2
+package uk.gov.homeoffice.akka
 
 import scala.reflect._
 import org.specs2.matcher.Matcher._
 import org.specs2.matcher.{MatchResult, _}
-import uk.gov.homeoffice.akka.ActorSystemContext
 
 trait ActorExpectations {
   this: ActorSystemContext =>

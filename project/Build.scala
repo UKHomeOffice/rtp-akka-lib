@@ -35,8 +35,8 @@ object Build extends Build {
     .settings(libraryDependencies ++= {
       val `akka-version` = "2.4.4"
       val `spray-version` = "1.3.3"
-      val `rtp-io-lib-version` = "1.7.14"
-      val `rtp-test-lib-version` = "1.2.4"
+      val `rtp-io-lib-version` = "1.7.16"
+      val `rtp-test-lib-version` = "1.3.1"
 
       Seq(
         "com.typesafe.akka" %% "akka-actor" % `akka-version` withSources(),
