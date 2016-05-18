@@ -23,3 +23,5 @@ assemblyMergeStrategy in assembly := {
   case PathList(ps @ _*) if ps.last endsWith ".java" => MergeStrategy.discard
   case _ => MergeStrategy.first
 }
+
+fork in run := true

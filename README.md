@@ -182,7 +182,7 @@ Example Usage
 ```scala
   object ExampleBoot extends App with SprayBoot with ExampleConfig {
     // You must provide an ActorSystem for Spray.
-    implicit lazy val spraySystem = ActorSystem(config.getString("spray.can.server.name"))
+    implicit lazy val spraySystem = ActorSystem("example-boot-actor-system")
   
     bootRoutings(ExampleRouting1 ~ ExampleRouting2 ~ ExampleRoutingError)(FailureHandling.exceptionHandler)
   }
@@ -204,3 +204,53 @@ To run ExampleBoot:
 ```bash
 sbt test:run
 ```
+
+Akka Clustering
+---------------
+Cluster Singleton:
+
+Actors can be managed in a cluster to run as a singleton - an actor will be distributed on multiple nodes, but only one will be running. Before looking at the necessary configuration, a quick note on metrics - these can be gathered by sigar where we have have to stipulate the "Java library path" to the necessary OS specific files. When running an application from a JAR, we can do:
+```bash
+java -Djava.library.path=./sigar
+```
+
+Note that without setting the "Java library path" an exception (that can be ignored) occurs.
+
+sigar is only used for metrics but is not needed. See https://support.hyperic.com
+
+Your application.conf for a Cluster Singleton, can use the following template:
+```json
+akka {
+  actor {
+    provider = "akka.cluster.ClusterActorRefProvider"
+  }
+
+  remote {
+    enabled-transports = ["akka.remote.netty.tcp"]
+
+    netty.tcp {
+      hostname = "127.0.0.1"
+      port = 0 # To be overridden in code for each running node in a cluster
+    }
+  }
+
+  cluster {
+    seed-nodes = [
+      "akka.tcp://your-actor-system@127.0.0.1:2551",
+      "akka.tcp://your-actor-system@127.0.0.1:2552",
+      "akka.tcp://your-actor-system@127.0.0.1:2553"
+    ]
+
+    roles = ["your-service"]
+    min-nr-of-members = 2
+    auto-down-unreachable-after = 30s
+  }
+}  
+```
+
+Each node that starts up on the same box would need a different port e.g. 2551, 2552 etc.
+In production, the nodes would be on different boxes and so can all have the same ports and said port could then also be declared for akka.actor.remote.netty.tcp.port.
+
+To start your application from a JAR and stipulate the boot (main) class, when needing to override akka.actor.remote.netty.tcp.port:
+```bash
+java -Djava.library.path=./sigar -cp application.jar blah.MainStipulatingPortNumber

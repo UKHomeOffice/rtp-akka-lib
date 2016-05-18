@@ -16,7 +16,7 @@ import uk.gov.homeoffice.json.JsonFormats
   * Example of booting a Spray microservice
   */
 object ExampleBoot extends App with SprayBoot with ExampleConfig {
-  implicit lazy val spraySystem = ActorSystem(config.getString("spray.can.server.name"))
+  implicit lazy val spraySystem = ActorSystem("example-boot-actor-system")
 
   bootRoutings(ExampleRouting1 ~ ExampleRouting2 ~ ExampleRoutingError)(FailureHandling.exceptionHandler)
 }
@@ -24,8 +24,10 @@ object ExampleBoot extends App with SprayBoot with ExampleConfig {
 /**
   * For your microservice, this configuration should be declared in a Typesafe configuration file such as application.conf
   */
-trait ExampleConfig extends HasConfig {
-  override val config = ConfigFactory.load(ConfigFactory.parseString("""
+trait ExampleConfig {
+  this: HasConfig =>
+
+  override implicit val config = ConfigFactory.load(ConfigFactory.parseString("""
     spray.can.server {
       name = "example-spray-can"
       host = "0.0.0.0"

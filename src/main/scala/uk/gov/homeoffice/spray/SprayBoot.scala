@@ -3,11 +3,13 @@ package uk.gov.homeoffice.spray
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.Try
 import akka.actor.{ActorRef, ActorSystem, Props, Terminated}
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
+import org.json4s.JValue
+import org.json4s.jackson.JsonMethods._
+import grizzled.slf4j.Logging
 import spray.can.Http
 import spray.can.server.Stats
 import spray.http.HttpMethods.GET
@@ -15,10 +17,7 @@ import spray.http.MediaTypes._
 import spray.http.StatusCodes.OK
 import spray.http.{HttpEntity, HttpRequest, HttpResponse, Uri}
 import spray.routing._
-import org.json4s.JValue
-import org.json4s.jackson.JsonMethods._
-import grizzled.slf4j.Logging
-import uk.gov.homeoffice.configuration.HasConfig
+import uk.gov.homeoffice.configuration.{ConfigFactorySupport, HasConfig}
 import uk.gov.homeoffice.duration._
 
 /**
@@ -34,7 +33,7 @@ import uk.gov.homeoffice.duration._
   * In order to add customisations, provide "bootRoutings" a seconds argument list for required exception and/or rejection handling.
   * Note that the method bootHttpService actually boots the services of the routings and this can be switched off for testing by overridding and doing nothing.
   */
-trait SprayBoot extends HttpService with RouteConcatenation with HasConfig with Logging {
+trait SprayBoot extends HttpService with RouteConcatenation with HasConfig with ConfigFactorySupport with Logging {
   this: App =>
 
   implicit lazy val actorRefFactory = {
@@ -56,15 +55,15 @@ trait SprayBoot extends HttpService with RouteConcatenation with HasConfig with 
     val routes = routings.tail.foldLeft(routings.head.route) { (route, routing) => route ~ routing.route }
 
     val routeHttpService = actorRefFactory.actorOf(HttpRouting.props(routes)(exceptionHandler, rejectionHandler),
-                                                   Try { config.getString("spray.can.server.service") } getOrElse "http-routing-service")
+                                                   config.text("spray.can.server.service", "http-routing-service"))
 
     bootHttpService(routeHttpService)
   }
 
   def bootHttpService(routeHttpService: ActorRef): Unit = {
     IO(Http) ! Http.Bind(listener = routeHttpService,
-                         interface = Try { config.getString("spray.can.server.host") } getOrElse "0.0.0.0",
-                         port = Try { config.getInt("spray.can.server.port") } getOrElse 9100)
+                         interface = config.text("spray.can.server.host", "0.0.0.0"),
+                         port = config.int("spray.can.server.port", 9100))
 
     sys addShutdownHook {
       implicit val timeout: Timeout = Timeout(30 seconds)
