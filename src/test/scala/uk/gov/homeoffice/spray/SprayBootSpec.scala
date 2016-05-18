@@ -1,6 +1,6 @@
 package uk.gov.homeoffice.spray
 
-import akka.actor.ActorRef
+import akka.actor.{ActorRef, ActorSystem}
 import spray.http.MediaTypes._
 import spray.http.StatusCodes._
 import spray.http.{HttpEntity, HttpResponse}
@@ -16,6 +16,8 @@ import uk.gov.homeoffice.json.JsonFormats
 
 class SprayBootSpec extends Specification {
   trait Context extends Scope with SprayBoot with App with LocalConfig {
+    implicit lazy val spraySystem = ActorSystem("spray-boot-spec-spray-can")
+
     override def bootHttpService(routeHttpService: ActorRef) = {}
   }
 

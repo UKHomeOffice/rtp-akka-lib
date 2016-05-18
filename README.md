@@ -180,8 +180,11 @@ Example Usage
 
 - Create your application (App) utilitising your routings (as well as anything else e.g. booting/wiring Akka actors):
 ```scala
-  object ExampleBoot extends App with SprayBoot {
-    bootRoutings(ExampleRouting1 ~ ExampleRouting2)
+  object ExampleBoot extends App with SprayBoot with ExampleConfig {
+    // You must provide an ActorSystem for Spray.
+    implicit lazy val spraySystem = ActorSystem(config.getString("spray.can.server.name"))
+  
+    bootRoutings(ExampleRouting1 ~ ExampleRouting2 ~ ExampleRoutingError)(FailureHandling.exceptionHandler)
   }
 ```
 

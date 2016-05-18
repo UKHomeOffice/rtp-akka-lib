@@ -1,26 +1,29 @@
 package uk.gov.homeoffice.spray
 
+import akka.actor.ActorSystem
+import com.typesafe.config.ConfigFactory
+import org.json4s.JsonAST.{JObject, JString}
+import org.json4s.jackson.JsonMethods._
 import spray.http.MediaTypes._
 import spray.http.StatusCodes._
 import spray.http.{HttpEntity, HttpResponse}
 import spray.httpx.Json4sSupport
 import spray.routing._
-import org.json4s.JsonAST.{JObject, JString}
-import org.json4s.jackson.JsonMethods._
-import com.typesafe.config.ConfigFactory
 import uk.gov.homeoffice.configuration.HasConfig
 import uk.gov.homeoffice.json.JsonFormats
 
 /**
- * Example of booting a Spray microservice
- */
+  * Example of booting a Spray microservice
+  */
 object ExampleBoot extends App with SprayBoot with ExampleConfig {
+  implicit lazy val spraySystem = ActorSystem(config.getString("spray.can.server.name"))
+
   bootRoutings(ExampleRouting1 ~ ExampleRouting2 ~ ExampleRoutingError)(FailureHandling.exceptionHandler)
 }
 
 /**
- * For your microservice, this configuration should be declared in a Typesafe configuration file such as application.conf
- */
+  * For your microservice, this configuration should be declared in a Typesafe configuration file such as application.conf
+  */
 trait ExampleConfig extends HasConfig {
   override val config = ConfigFactory.load(ConfigFactory.parseString("""
     spray.can.server {
@@ -35,8 +38,9 @@ trait ExampleConfig extends HasConfig {
 }
 
 /**
- * Routing example 1
- */
+  * Routing example 1
+  * curl http://localhost:9100/example1
+  */
 object ExampleRouting1 extends ExampleRouting1
 
 trait ExampleRouting1 extends Routing {
@@ -51,8 +55,9 @@ trait ExampleRouting1 extends Routing {
 }
 
 /**
- * Routing example 2
- */
+  * Routing example 2
+  * curl http://localhost:9100/example2
+  */
 object ExampleRouting2 extends ExampleRouting2
 
 trait ExampleRouting2 extends Routing {
@@ -67,8 +72,8 @@ trait ExampleRouting2 extends Routing {
 }
 
 /**
- * Routing example to see failure handling
- */
+  * Routing example to see failure handling
+  */
 object ExampleRoutingError extends ExampleRoutingError
 
 trait ExampleRoutingError extends Routing {
@@ -83,8 +88,8 @@ trait ExampleRoutingError extends Routing {
 }
 
 /**
- * Example of specific handing of failures
- */
+  * Example of specific handing of failures
+  */
 object FailureHandling extends Directives with JsonFormats with Json4sSupport {
   val exceptionHandler = ExceptionHandler {
     case e: TestException => complete {

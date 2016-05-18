@@ -1,9 +1,10 @@
 package uk.gov.homeoffice.spray
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Try
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, Props, Terminated}
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
@@ -21,25 +22,31 @@ import uk.gov.homeoffice.configuration.HasConfig
 import uk.gov.homeoffice.duration._
 
 /**
- * Boot your application with your required routings e.g.
- *
- * object ExampleBoot extends App with SprayBoot {
- *   bootRoutings(ExampleRouting1 ~ ExampleRouting2)
- * }
- *
- * "bootRoutings" defaults to using Spray defaults for the likes of failure handling.
- * In order to add customisations, provide "bootRoutings" a seconds argument list for required exception and/or rejection handling.
- */
+  * Boot your application with your required routings e.g.
+  *
+  * object ExampleBoot extends App with SprayBoot {
+  *   implicit lazy val spraySystem = ActorSystem("name-of-provided-actor-system-for-spray")
+  *
+  *   bootRoutings(ExampleRouting1 ~ ExampleRouting2)
+  * }
+  *
+  * "bootRoutings" defaults to using Spray defaults for the likes of failure handling.
+  * In order to add customisations, provide "bootRoutings" a seconds argument list for required exception and/or rejection handling.
+  * Note that the method bootHttpService actually boots the services of the routings and this can be switched off for testing by overridding and doing nothing.
+  */
 trait SprayBoot extends HttpService with RouteConcatenation with HasConfig with Logging {
   this: App =>
 
-  implicit lazy val actorRefFactory = ActorSystem(Try { config.getString("spray.can.server.name") } getOrElse "spray-can")
-
-  sys addShutdownHook {
-    actorRefFactory.terminate()
+  implicit lazy val actorRefFactory = {
+    sys addShutdownHook spraySystemShutdownHook
+    spraySystem
   }
 
-  implicit def routingToSeq(r: Routing): Seq[Routing] = Seq(r)
+  def spraySystem: ActorSystem
+
+  implicit def routing2Seq(r: Routing): Seq[Routing] = Seq(r)
+
+  def spraySystemShutdownHook: Future[Terminated] = actorRefFactory.terminate()
 
   def bootRoutings(routings: Seq[Routing])(implicit exceptionHandler: ExceptionHandler = ExceptionHandler.default,
                                                     rejectionHandler: RejectionHandler = RejectionHandler.Default): Unit = {
@@ -54,7 +61,7 @@ trait SprayBoot extends HttpService with RouteConcatenation with HasConfig with 
     bootHttpService(routeHttpService)
   }
 
-  private[spray] def bootHttpService(routeHttpService: ActorRef): Unit = {
+  def bootHttpService(routeHttpService: ActorRef): Unit = {
     IO(Http) ! Http.Bind(listener = routeHttpService,
                          interface = Try { config.getString("spray.can.server.host") } getOrElse "0.0.0.0",
                          port = Try { config.getInt("spray.can.server.port") } getOrElse 9100)
