@@ -1,5 +1,7 @@
 package uk.gov.homeoffice.akka
 
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeUnit.{MILLISECONDS => _, _}
 import scala.concurrent.duration._
 import akka.actor.{Actor, ActorSystem, PoisonPill, Props}
 import akka.cluster.Cluster
@@ -10,15 +12,17 @@ import akka.cluster.singleton.{ClusterSingletonManager, ClusterSingletonManagerS
 import com.typesafe.config.ConfigFactory._
 import com.typesafe.config.{Config, ConfigFactory}
 import org.specs2.mutable.Specification
+import de.flapdoodle.embed.process.runtime.Network._
 
 class ClusterSingletonSpec extends Specification {
   case object ActorRunning
 
   "Cluster singleton" should {
-    "not start singleton actor for only 1 node running" in new ActorSystemContext {
-      val b1 = new Boot(2551)
+    "not start singleton actor for only 1 node running" in new ActorSystemContext with ClusterSingleton {
+      system2.terminate()
+      system3.terminate()
 
-      b1.system actorOf Props {
+      system1 actorOf Props {
         new Actor {
           override def preStart(): Unit = Cluster(context.system).subscribe(self, classOf[MemberJoined])
 
@@ -30,7 +34,7 @@ class ClusterSingletonSpec extends Specification {
 
       expectMsgType[MemberJoined](10 seconds)
 
-      b1.system actorOf Props {
+      system1 actorOf Props {
         new Actor {
           override def preStart(): Unit = {
             val mediator = DistributedPubSub(context.system).mediator
@@ -46,11 +50,10 @@ class ClusterSingletonSpec extends Specification {
       expectNoMsg()
     }
 
-    "run singleton actor for 2 running nodes" in new ActorSystemContext {
-      val b1 = new Boot(2551)
-      val b2 = new Boot(2552)
+    "run singleton actor for 2 running nodes" in new ActorSystemContext with ClusterSingleton {
+      system3.terminate()
 
-      b1.system actorOf Props {
+      system1 actorOf Props {
         new Actor {
           override def preStart(): Unit = Cluster(context.system).subscribe(self, classOf[MemberUp])
 
@@ -63,7 +66,9 @@ class ClusterSingletonSpec extends Specification {
       expectMsgType[MemberUp](10 seconds)
       expectMsgType[MemberUp](10 seconds)
 
-      b1.system actorOf Props {
+      TimeUnit.SECONDS.sleep(20) // TODO SORT OUT - obviously memberup doesn't count... how do we know the cluster is ready???
+
+      system1 actorOf Props {
         new Actor {
           override def preStart(): Unit = {
             val mediator = DistributedPubSub(context.system).mediator
@@ -82,8 +87,13 @@ class ClusterSingletonSpec extends Specification {
   }
 }
 
-class Boot(clusterPort: Int) {
-  val config: Config = load(parseString("""
+trait ClusterSingleton {
+  val (system1, system2, system3) = cluster
+
+  def cluster: (ActorSystem, ActorSystem, ActorSystem) = try {
+    val (port1, port2, port3) = (freePort, freePort, freePort)
+
+    val config: Config = load(parseString(s"""
     akka {
       actor {
         provider = "akka.cluster.ClusterActorRefProvider"
@@ -100,9 +110,9 @@ class Boot(clusterPort: Int) {
 
       cluster {
         seed-nodes = [
-          "akka.tcp://my-actor-system@127.0.0.1:2551",
-          "akka.tcp://my-actor-system@127.0.0.1:2552",
-          "akka.tcp://my-actor-system@127.0.0.1:2553"
+          "akka.tcp://my-actor-system@127.0.0.1:$port1",
+          "akka.tcp://my-actor-system@127.0.0.1:$port2",
+          "akka.tcp://my-actor-system@127.0.0.1:$port3"
         ]
 
         roles = ["my-service"]
@@ -113,18 +123,40 @@ class Boot(clusterPort: Int) {
       extensions = ["akka.cluster.pubsub.DistributedPubSub"]
     }"""))
 
-  val system = ActorSystem("my-actor-system", ConfigFactory.parseString(s"akka.remote.netty.tcp.port = $clusterPort").withFallback(config))
+    val system1 = ActorSystem("my-actor-system", ConfigFactory.parseString(s"akka.remote.netty.tcp.port = $port1").withFallback(config))
+    system1.actorOf(pingActorProps(system1), "ping-actor")
 
-  val pingActorProps = ClusterSingletonManager.props(
-    singletonProps = PingActor.props,
+    val system2 = ActorSystem("my-actor-system", ConfigFactory.parseString(s"akka.remote.netty.tcp.port = $port2").withFallback(config))
+    system2.actorOf(pingActorProps(system2), "ping-actor")
+
+    val system3 = ActorSystem("my-actor-system", ConfigFactory.parseString(s"akka.remote.netty.tcp.port = $port3").withFallback(config))
+    system3.actorOf(pingActorProps(system3), "ping-actor")
+
+    println(s"===> PORTS: $port1, $port2, $port3")
+
+    (system1, system2, system3)
+  } catch {
+    case t: Throwable =>
+      println(s"Failed to start up the cluster because of: ${t.getMessage}... trying again")
+      cluster
+  }
+
+  def freePort: Int = {
+    val port = getFreeServerPort
+
+    // Avoid standard Mongo ports in case a standalone Mongo is running.
+    if ((27017 to 27027) contains port) {
+      MILLISECONDS.sleep(10)
+      freePort
+    } else {
+      port
+    }
+  }
+
+  def pingActorProps(system: ActorSystem) = ClusterSingletonManager.props(
+    singletonProps = Props(new PingActor),
     terminationMessage = PoisonPill,
     settings = ClusterSingletonManagerSettings(system).withRole("my-service"))
-
-  val pingActor = system.actorOf(pingActorProps, "ping-actor")
-}
-
-object PingActor {
-  def props = Props(new PingActor)
 }
 
 class PingActor extends Actor {

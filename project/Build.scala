@@ -52,6 +52,7 @@ object Build extends Build {
         "com.typesafe.akka" %% "akka-slf4j" % `akka-version` withSources(),
         "io.spray" %% "spray-can" % `spray-version` withSources() excludeAll ExclusionRule(organization = "org.json4s") exclude("io.spray", "spray-routing"),
         "io.spray" %% "spray-routing-shapeless2" % `spray-version` withSources() excludeAll ExclusionRule(organization = "org.json4s"),
+        "de.flapdoodle.embed" % "de.flapdoodle.embed.mongo" % "1.50.2" withSources(),
         "com.github.cb372" % "metrics-sigar" % "0.2.2",
         "uk.gov.homeoffice" %% "rtp-io-lib" % `rtp-io-lib-version` withSources(),
         "uk.gov.homeoffice" %% "rtp-test-lib" % `rtp-test-lib-version` withSources()
