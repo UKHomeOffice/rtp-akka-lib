@@ -1,7 +1,7 @@
 package uk.gov.homeoffice.spray
 
 import akka.actor.ActorSystem
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.ConfigFactory._
 import org.json4s.JsonAST.{JObject, JString}
 import org.json4s.jackson.JsonMethods._
 import spray.http.MediaTypes._
@@ -16,7 +16,7 @@ import uk.gov.homeoffice.json.JsonFormats
   * Example of booting a Spray microservice
   */
 object ExampleBoot extends App with SprayBoot with ExampleConfig {
-  implicit lazy val spraySystem = ActorSystem("example-boot-actor-system")
+  implicit lazy val sprayActorSystem = ActorSystem("example-boot-actor-system")
 
   bootRoutings(ExampleRouting1 ~ ExampleRouting2 ~ ExampleRoutingError)(FailureHandling.exceptionHandler)
 }
@@ -27,7 +27,7 @@ object ExampleBoot extends App with SprayBoot with ExampleConfig {
 trait ExampleConfig {
   this: HasConfig =>
 
-  override implicit val config = ConfigFactory.load(ConfigFactory.parseString("""
+  override implicit val config = load(parseString("""
     spray.can.server {
       name = "example-spray-can"
       host = "0.0.0.0"
@@ -35,8 +35,7 @@ trait ExampleConfig {
       request-timeout = 1s
       service = "example-http-routing-service"
       remote-address-header = on
-    }
-  """))
+    }"""))
 }
 
 /**

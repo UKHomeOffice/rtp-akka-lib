@@ -182,7 +182,7 @@ Example Usage
 ```scala
   object ExampleBoot extends App with SprayBoot with ExampleConfig {
     // You must provide an ActorSystem for Spray.
-    implicit lazy val spraySystem = ActorSystem("example-boot-actor-system")
+    implicit lazy val sprayActorSystem = ActorSystem("example-boot-actor-system")
   
     bootRoutings(ExampleRouting1 ~ ExampleRouting2 ~ ExampleRoutingError)(FailureHandling.exceptionHandler)
   }
