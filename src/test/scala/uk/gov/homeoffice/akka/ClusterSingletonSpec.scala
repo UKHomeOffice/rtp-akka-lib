@@ -18,7 +18,7 @@ class ClusterSingletonSpec extends Specification {
     "not start singleton actor for only 1 node running" in new ActorSystemContext {
       val b1 = new Boot(2551)
 
-      val myActor = b1.system actorOf Props {
+      b1.system actorOf Props {
         new Actor {
           override def preStart(): Unit = Cluster(context.system).subscribe(self, classOf[MemberJoined])
 
@@ -30,7 +30,7 @@ class ClusterSingletonSpec extends Specification {
 
       expectMsgType[MemberJoined](10 seconds)
 
-      val myActor2 = b1.system actorOf Props {
+      b1.system actorOf Props {
         new Actor {
           override def preStart(): Unit = {
             val mediator = DistributedPubSub(context.system).mediator
@@ -118,7 +118,7 @@ class Boot(clusterPort: Int) {
   val pingActorProps = ClusterSingletonManager.props(
     singletonProps = PingActor.props,
     terminationMessage = PoisonPill,
-    settings = ClusterSingletonManagerSettings(system).withRole("my-service").withSingletonName("blah"))
+    settings = ClusterSingletonManagerSettings(system).withRole("my-service"))
 
   val pingActor = system.actorOf(pingActorProps, "ping-actor")
 }
