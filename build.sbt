@@ -25,3 +25,5 @@ assemblyMergeStrategy in assembly := {
 }
 
 fork in run := true
+
+fork in Test := true

@@ -1,11 +1,13 @@
 package uk.gov.homeoffice.akka
 
+import scala.concurrent.duration._
 import scala.reflect._
+import akka.testkit.TestKitBase
 import org.specs2.matcher.Matcher._
 import org.specs2.matcher.{MatchResult, _}
 
 trait ActorExpectations {
-  this: ActorSystemContext =>
+  this: TestKitBase =>
 
   /**
     * An Actor may receive multiple messages, but you are only interested in one particular message.
@@ -15,8 +17,8 @@ trait ActorExpectations {
     * @tparam T Type of the message that is expected
     * @return MatchResult of "ok" if a valid expectation, otherwise "ko".
     */
-  def eventuallyExpectMsg[T](pf: PartialFunction[Any, Boolean])(implicit c: ClassTag[T]): MatchResult[Any] = {
-    val message = fishForMessage() {
+  def eventuallyExpectMsg[T](pf: PartialFunction[Any, Boolean], timeout: Duration = 30 seconds)(implicit c: ClassTag[T]): MatchResult[Any] = {
+    val message = fishForMessage(max = timeout) {
       pf orElse { case _ => false }
     }
 

@@ -16,7 +16,7 @@ import uk.gov.homeoffice.json.JsonFormats
 
 class SprayBootSpec extends Specification {
   trait Context extends Scope with SprayBoot with App with LocalConfig {
-    implicit lazy val spraySystem = ActorSystem("spray-boot-spec-spray-can")
+    implicit lazy val sprayActorSystem = ActorSystem("spray-boot-spec-spray-can")
 
     override def bootHttpService(routeHttpService: ActorRef) = {}
   }

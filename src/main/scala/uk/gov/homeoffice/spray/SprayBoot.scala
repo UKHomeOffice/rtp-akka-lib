@@ -38,10 +38,10 @@ trait SprayBoot extends HttpService with RouteConcatenation with HasConfig with 
 
   implicit lazy val actorRefFactory = {
     sys addShutdownHook spraySystemShutdownHook
-    spraySystem
+    sprayActorSystem
   }
 
-  def spraySystem: ActorSystem
+  def sprayActorSystem: ActorSystem
 
   implicit def routing2Seq(r: Routing): Seq[Routing] = Seq(r)
 
