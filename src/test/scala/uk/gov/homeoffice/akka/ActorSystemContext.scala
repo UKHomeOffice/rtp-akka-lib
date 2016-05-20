@@ -5,9 +5,9 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKitBase}
+import com.typesafe.config.{Config, ConfigFactory}
 import org.specs2.execute.{AsResult, Result}
 import org.specs2.specification.Scope
-import com.typesafe.config.{Config, ConfigFactory}
 import grizzled.slf4j.Logging
 import uk.gov.homeoffice.specs2.ComposableAround
 

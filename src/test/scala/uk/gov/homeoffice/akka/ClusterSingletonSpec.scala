@@ -11,16 +11,17 @@ import akka.event.Logging.LogEvent
 import com.typesafe.config.ConfigFactory._
 import com.typesafe.config.{Config, ConfigFactory}
 import org.specs2.concurrent.ExecutionEnv
+import org.specs2.matcher.Scope
 import org.specs2.mutable.Specification
 import de.flapdoodle.embed.process.runtime.Network._
 
-class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification {
+class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification with ActorSystemSpecification with ActorExpectations {
   import PingActor._
 
   case object ActorRunning
 
   "Cluster singleton" should {
-    "not have a singleton actor running when only 1 node is running" in new ActorSystemContext with ClusterSingleton {
+    "not have a singleton actor running when only 1 node is running" in new ClusterSingleton with Scope {
       val cluster: Seq[ActorSystem] = cluster(1)
 
       cluster.zipWithIndex foreach { case (actorSystem, index) =>
@@ -30,7 +31,7 @@ class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification {
       expectNoMsg()
     }
 
-    "run singleton actor for 2 running nodes" in new ActorSystemContext with ActorExpectations with ClusterSingleton {
+    "run singleton actor for 2 running nodes" in new ClusterSingleton {
       val cluster: Seq[ActorSystem] = cluster(2)
 
       cluster.zipWithIndex foreach { case (actorSystem, index) =>
@@ -48,7 +49,7 @@ class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification {
       expectMsgType[Pong](10 seconds)
     }
 
-    "run singleton actor for 2 running nodes - using distributed pub/sub" in new ActorSystemContext with ActorExpectations with ClusterSingleton {
+    "run singleton actor for 2 running nodes - using distributed pub/sub" in new ClusterSingleton with Scope {
       val cluster: Seq[ActorSystem] = cluster(2)
 
       cluster.zipWithIndex foreach { case (actorSystem, index) =>
@@ -79,7 +80,7 @@ class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification {
       expectMsgType[ActorRunning.type](10 seconds)
     }
 
-    "run singleton actor for 3 running nodes, even after bringing down the leading node" in new ActorSystemContext with ActorExpectations with ClusterSingleton {
+    /*"run singleton actor for 3 running nodes, even after bringing down the leading node" in new ClusterSingleton with Scope {
       val cluster: Seq[ActorSystem] = cluster(2)
 
       cluster.zipWithIndex foreach { case (actorSystem, index) =>
@@ -96,12 +97,17 @@ class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification {
 
       expectMsgType[Pong](10 seconds)
 
-      cluster.head.terminate() must beLike {
-        case Terminated => ok
+      cluster.head.terminate() must beLike[Terminated] {
+        case Terminated(actor) =>
+          val depletedCluster = cluster.tail
+
+          depletedCluster.head.actorSelection("akka://my-actor-system/user/ping-actor/singleton") ! Ping
+
+          expectMsgType[Pong](10 seconds)
       }.awaitFor(10 seconds)
 
       //val depletedCluster = cluster.tail
-    }
+    }*/
   }
 }
 

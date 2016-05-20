@@ -2,11 +2,12 @@ package uk.gov.homeoffice.akka
 
 import scala.concurrent.duration._
 import scala.reflect._
+import akka.testkit.TestKitBase
 import org.specs2.matcher.Matcher._
 import org.specs2.matcher.{MatchResult, _}
 
 trait ActorExpectations {
-  this: ActorSystemContext =>
+  this: TestKitBase =>
 
   /**
     * An Actor may receive multiple messages, but you are only interested in one particular message.
