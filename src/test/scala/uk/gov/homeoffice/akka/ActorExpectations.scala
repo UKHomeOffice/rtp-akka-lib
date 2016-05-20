@@ -17,7 +17,7 @@ trait ActorExpectations {
     * @tparam T Type of the message that is expected
     * @return MatchResult of "ok" if a valid expectation, otherwise "ko".
     */
-  def eventuallyExpectMsg[T](pf: PartialFunction[Any, Boolean], timeout: Duration = 20 seconds)(implicit c: ClassTag[T]): MatchResult[Any] = {
+  def eventuallyExpectMsg[T](pf: PartialFunction[Any, Boolean], timeout: Duration = 30 seconds)(implicit c: ClassTag[T]): MatchResult[Any] = {
     val message = fishForMessage(max = timeout) {
       pf orElse { case _ => false }
     }
