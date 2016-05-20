@@ -3,176 +3,131 @@ package uk.gov.homeoffice.akka
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeUnit.{MILLISECONDS => _, _}
 import scala.concurrent.duration._
-import akka.actor.{Actor, ActorSystem, PoisonPill, Props}
-import akka.cluster.Cluster
-import akka.cluster.ClusterEvent._
+import akka.actor.{Actor, ActorPath, ActorSystem, PoisonPill, Props, Terminated}
 import akka.cluster.pubsub.DistributedPubSub
 import akka.cluster.pubsub.DistributedPubSubMediator.{Publish, Subscribe}
 import akka.cluster.singleton.{ClusterSingletonManager, ClusterSingletonManagerSettings}
+import akka.event.Logging.LogEvent
 import com.typesafe.config.ConfigFactory._
 import com.typesafe.config.{Config, ConfigFactory}
+import org.specs2.concurrent.ExecutionEnv
 import org.specs2.mutable.Specification
 import de.flapdoodle.embed.process.runtime.Network._
 
-class ClusterSingletonSpec extends Specification {
-  case object ActorRunning
+class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification {
+  import PingActor._
 
-  def pingActorProps(system: ActorSystem) = ClusterSingletonManager.props(
-    singletonProps = Props(new PingActor),
-    terminationMessage = PoisonPill,
-    settings = ClusterSingletonManagerSettings(system)/*.withRole("my-service")*/)
+  case object ActorRunning
 
   "Cluster singleton" should {
     "not have a singleton actor running when only 1 node is running" in new ActorSystemContext with ClusterSingleton {
       val cluster: Seq[ActorSystem] = cluster(1)
 
-      cluster foreach { actorSystem =>
-        actorSystem.actorOf(pingActorProps(actorSystem), "ping-actor")
-      }
-
-      cluster.head actorOf Props {
-        new Actor {
-          override def preStart(): Unit = Cluster(context.system).subscribe(self, classOf[MemberEvent])
-
-          override def receive: Receive = {
-            case m: MemberEvent => testActor ! m
-          }
-        }
+      cluster.zipWithIndex foreach { case (actorSystem, index) =>
+        actorSystem.actorOf(PingActor.props(actorSystem, index + 1), s"ping-actor")
       }
 
       expectNoMsg()
     }
 
-    "run singleton actor for 2 running nodes" in new ActorSystemContext with ClusterSingleton {
+    "run singleton actor for 2 running nodes" in new ActorSystemContext with ActorExpectations with ClusterSingleton {
       val cluster: Seq[ActorSystem] = cluster(2)
 
-      cluster foreach { actorSystem =>
-        actorSystem.actorOf(pingActorProps(actorSystem), "ping-actor")
+      cluster.zipWithIndex foreach { case (actorSystem, index) =>
+        actorSystem.actorOf(PingActor.props(actorSystem, index + 1), s"ping-actor")
       }
 
-      cluster.head actorOf Props {
-        new Actor {
-          override def preStart(): Unit = Cluster(context.system).subscribe(self, classOf[MemberUp])
+      cluster.head.eventStream.subscribe(self, classOf[LogEvent])
 
-          override def receive: Receive = {
-            case u: MemberUp => testActor ! u
-          }
-        }
+      eventuallyExpectMsg[LogEvent] {
+        case l: LogEvent => l.message.toString.contains("Start -> Oldest")
       }
 
-      expectMsgType[MemberUp](10 seconds)
-      expectMsgType[MemberUp](10 seconds)
+      cluster.head.actorSelection("akka://my-actor-system/user/ping-actor/singleton") ! Ping
 
-      TimeUnit.SECONDS.sleep(20) // TODO SORT OUT - obviously memberup doesn't count... how do we know the cluster is ready???
+      expectMsgType[Pong](10 seconds)
+    }
+
+    "run singleton actor for 2 running nodes - using distributed pub/sub" in new ActorSystemContext with ActorExpectations with ClusterSingleton {
+      val cluster: Seq[ActorSystem] = cluster(2)
+
+      cluster.zipWithIndex foreach { case (actorSystem, index) =>
+        actorSystem.actorOf(PingActor.props(actorSystem, index + 1), s"ping-actor")
+      }
+
+      cluster.head.eventStream.subscribe(self, classOf[LogEvent])
+
+      eventuallyExpectMsg[LogEvent] {
+        case l: LogEvent => l.message.toString.contains("Start -> Oldest")
+      }
 
       cluster.head actorOf Props {
         new Actor {
           override def preStart(): Unit = {
             val mediator = DistributedPubSub(context.system).mediator
-            mediator ! Publish("content", "ping")
+            mediator ! Publish("content", Ping)
           }
 
           override def receive: Receive = {
-            case "pong" => testActor ! ActorRunning
+            case Pong(actorPath, id) =>
+              println(s"===> Got back pong from $actorPath with ID $id")
+              testActor ! ActorRunning
           }
         }
       }
 
       expectMsgType[ActorRunning.type](10 seconds)
     }
+
+    "run singleton actor for 3 running nodes, even after bringing down the leading node" in new ActorSystemContext with ActorExpectations with ClusterSingleton {
+      val cluster: Seq[ActorSystem] = cluster(2)
+
+      cluster.zipWithIndex foreach { case (actorSystem, index) =>
+        actorSystem.actorOf(PingActor.props(actorSystem, index + 1), s"ping-actor")
+      }
+
+      cluster.head.eventStream.subscribe(self, classOf[LogEvent])
+
+      eventuallyExpectMsg[LogEvent] {
+        case l: LogEvent => l.message.toString.contains("Start -> Oldest")
+      }
+
+      cluster.head.actorSelection("akka://my-actor-system/user/ping-actor/singleton") ! Ping
+
+      expectMsgType[Pong](10 seconds)
+
+      cluster.head.terminate() must beLike {
+        case Terminated => ok
+      }.awaitFor(10 seconds)
+
+      //val depletedCluster = cluster.tail
+    }
   }
 }
 
-trait ClusterSingleton {
-  def cluster(numberOfNodes: Int): Seq[ActorSystem] = try {
-    val ports = 1 to numberOfNodes map { _ => freePort }
+object PingActor {
+  case object Ping
 
-    val seedNodes = ports map { port =>
-      s""""akka.tcp://my-actor-system@127.0.0.1:$port""""
-    } mkString ", "
+  case class Pong(a: ActorPath, id: Int)
 
-    val config: Config = load(parseString(s"""
-      akka {
-        actor {
-          provider = "akka.cluster.ClusterActorRefProvider"
-        }
-
-        remote {
-          enabled-transports = ["akka.remote.netty.tcp"]
-
-          netty.tcp {
-            hostname = "127.0.0.1"
-            port = 0 # To be overridden in code for each running node in a cluster
-          }
-        }
-
-        cluster {
-          seed-nodes = [ $seedNodes ]
-          # roles = ["my-service"]
-          min-nr-of-members = 2
-          auto-down-unreachable-after = 30s
-        }
-
-        extensions = ["akka.cluster.pubsub.DistributedPubSub"]
-      }"""))
-
-    ports map { port =>
-      ActorSystem("my-actor-system", ConfigFactory.parseString(s"akka.remote.netty.tcp.port = $port").withFallback(config))
-    }
-  } catch {
-    case t: Throwable =>
-      println(s"Error in starting up an actor system because of: ${t.getMessage}... Will try again")
-      TimeUnit.SECONDS.sleep(1)
-      cluster(numberOfNodes)
-  }
-
-  def freePort: Int = {
-    val port = getFreeServerPort
-
-    // Avoid standard Mongo ports in case a standalone Mongo is running.
-    if ((27017 to 27027) contains port) {
-      MILLISECONDS.sleep(10)
-      freePort
-    } else {
-      port
-    }
-  }
-
-  def clusterConfig(ports: Seq[Int]): Config = load(parseString(s"""
-    akka {
-      actor {
-        provider = "akka.cluster.ClusterActorRefProvider"
-      }
-
-      remote {
-        enabled-transports = ["akka.remote.netty.tcp"]
-
-        netty.tcp {
-          hostname = "127.0.0.1"
-          port = 0 # To be overridden in code for each running node in a cluster
-        }
-      }
-
-      cluster {
-        seed-nodes = [ "${ports map { port => s"akka.tcp://my-actor-system@127.0.0.1:$port" } mkString ", "}" ]
-        roles = ["my-service"]
-        min-nr-of-members = 2
-        auto-down-unreachable-after = 30s
-      }
-
-      extensions = ["akka.cluster.pubsub.DistributedPubSub"]
-    }"""))
+  def props(system: ActorSystem, id: Int) = ClusterSingletonManager.props(
+    singletonProps = Props(new PingActor(id)),
+    terminationMessage = PoisonPill,
+    settings = ClusterSingletonManagerSettings(system)/*.withRole("my-service")*/
+  )
 }
 
-class PingActor extends Actor {
+class PingActor(id: Int) extends Actor {
+  import PingActor._
+
   val mediator = DistributedPubSub(context.system).mediator
 
   // Subscribe to the topic named "content"
   mediator ! Subscribe("content", self)
 
   override def receive: Receive = {
-    case "ping" =>
-      println(s"===> Pong")
-      sender() ! "pong"
+    case Ping =>
+      println(s"===> Ponging from actor with ID $id")
+      sender() ! Pong(self.path, id)
   }
 }

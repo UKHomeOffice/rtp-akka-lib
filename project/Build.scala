@@ -48,6 +48,7 @@ object Build extends Build {
         "com.typesafe.akka" %% "akka-actor" % `akka-version` withSources(),
         "com.typesafe.akka" %% "akka-remote" % `akka-version` withSources(),
         "com.typesafe.akka" %% "akka-cluster-tools" % `akka-version` withSources(),
+        "com.typesafe.akka" %% "akka-cluster-metrics" % `akka-version` withSources(),
         "com.typesafe.akka" %% "akka-stream" % `akka-version` withSources(),
         "com.typesafe.akka" %% "akka-slf4j" % `akka-version` withSources(),
         "io.spray" %% "spray-can" % `spray-version` withSources() excludeAll ExclusionRule(organization = "org.json4s") exclude("io.spray", "spray-routing"),
