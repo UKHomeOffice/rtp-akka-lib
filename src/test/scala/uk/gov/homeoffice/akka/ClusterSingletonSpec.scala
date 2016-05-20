@@ -17,40 +17,38 @@ import de.flapdoodle.embed.process.runtime.Network._
 class ClusterSingletonSpec extends Specification {
   case object ActorRunning
 
+  def pingActorProps(system: ActorSystem) = ClusterSingletonManager.props(
+    singletonProps = Props(new PingActor),
+    terminationMessage = PoisonPill,
+    settings = ClusterSingletonManagerSettings(system)/*.withRole("my-service")*/)
+
   "Cluster singleton" should {
-    /*"not start singleton actor for only 1 node running" in new ActorSystemContext with ClusterSingleton {
+    "not have a singleton actor running when only 1 node is running" in new ActorSystemContext with ClusterSingleton {
       val cluster: Seq[ActorSystem] = cluster(1)
 
-      cluster.head actorOf Props {
-        new Actor {
-          override def preStart(): Unit = Cluster(context.system).subscribe(self, classOf[MemberJoined])
-
-          override def receive: Receive = {
-            case j: MemberJoined => testActor ! j
-          }
-        }
+      cluster foreach { actorSystem =>
+        actorSystem.actorOf(pingActorProps(actorSystem), "ping-actor")
       }
 
-      expectMsgType[MemberJoined](10 seconds)
-
       cluster.head actorOf Props {
         new Actor {
-          override def preStart(): Unit = {
-            val mediator = DistributedPubSub(context.system).mediator
-            mediator ! Publish("content", "ping")
-          }
+          override def preStart(): Unit = Cluster(context.system).subscribe(self, classOf[MemberEvent])
 
           override def receive: Receive = {
-            case "pong" => testActor ! ActorRunning // This should not happen
+            case m: MemberEvent => testActor ! m
           }
         }
       }
 
       expectNoMsg()
-    }*/
+    }
 
     "run singleton actor for 2 running nodes" in new ActorSystemContext with ClusterSingleton {
       val cluster: Seq[ActorSystem] = cluster(2)
+
+      cluster foreach { actorSystem =>
+        actorSystem.actorOf(pingActorProps(actorSystem), "ping-actor")
+      }
 
       cluster.head actorOf Props {
         new Actor {
@@ -110,7 +108,7 @@ trait ClusterSingleton {
 
         cluster {
           seed-nodes = [ $seedNodes ]
-          roles = ["my-service"]
+          # roles = ["my-service"]
           min-nr-of-members = 2
           auto-down-unreachable-after = 30s
         }
@@ -119,10 +117,7 @@ trait ClusterSingleton {
       }"""))
 
     ports map { port =>
-      val actorSystem = ActorSystem("my-actor-system", ConfigFactory.parseString(s"akka.remote.netty.tcp.port = $port").withFallback(config))
-      actorSystem.actorOf(pingActorProps(actorSystem), "ping-actor")
-
-      actorSystem
+      ActorSystem("my-actor-system", ConfigFactory.parseString(s"akka.remote.netty.tcp.port = $port").withFallback(config))
     }
   } catch {
     case t: Throwable =>
@@ -167,11 +162,6 @@ trait ClusterSingleton {
 
       extensions = ["akka.cluster.pubsub.DistributedPubSub"]
     }"""))
-
-  def pingActorProps(system: ActorSystem) = ClusterSingletonManager.props(
-    singletonProps = Props(new PingActor),
-    terminationMessage = PoisonPill,
-    settings = ClusterSingletonManagerSettings(system).withRole("my-service"))
 }
 
 class PingActor extends Actor {
