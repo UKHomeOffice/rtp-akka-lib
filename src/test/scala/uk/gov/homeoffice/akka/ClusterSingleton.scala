@@ -9,7 +9,7 @@ import de.flapdoodle.embed.process.runtime.Network._
 
 trait ClusterSingleton {
   def cluster(numberOfNodes: Int, extraConfig: Config = ConfigFactory.empty()): Seq[ActorSystem] = try {
-    val ports = 1 to numberOfNodes map { _ => freePort }
+    val ports: Seq[Int] = 1 to numberOfNodes map { _ => freePort }
 
     val config: Config = clusterConfig(ports)
 
@@ -59,10 +59,29 @@ trait ClusterSingleton {
           seed-nodes = [ $seedNodes ]
           # roles = ["my-service"]
           min-nr-of-members = 2
-          # auto-down-unreachable-after = 1s
+          # auto-down-unreachable-after = 30s
+
+          metrics {
+            enabled = off
+          }
         }
 
-        extensions = ["akka.cluster.pubsub.DistributedPubSub"]
+        extensions = [
+          "akka.cluster.pubsub.DistributedPubSub",
+          "akka.cluster.metrics.ClusterMetricsExtension"
+        ]
       }"""))
   }
 }
+
+/*
+# Disable legacy metrics in akka-cluster.
+akka.cluster.metrics.enabled=off
+
+# Enable metrics extension in akka-cluster-metrics.
+akka.extensions=["akka.cluster.metrics.ClusterMetricsExtension"]
+
+# Sigar native library extract location during tests.
+# Note: use per-jvm-instance folder when running multiple jvm on one host.
+akka.cluster.metrics.native-library-extract-folder=${user.dir}/target/native
+ */

@@ -19,6 +19,6 @@ abstract class ActorSystemContext(val config: Config = ConfigFactory.load) exten
     super.around(r)
   } finally {
     info(s"Shutting down actor system $system")
-    Await.ready(system.terminate(), 10 seconds)
+    Await.ready(system.terminate(), 2 seconds)
   }
 }

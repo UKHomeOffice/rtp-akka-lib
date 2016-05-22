@@ -22,11 +22,11 @@ object Build extends Build {
         "-language:postfixOps",
         "-Yrangepos",
         "-Yrepl-sync"),
-      javaOptions in run ++= Seq(
+      /*javaOptions in run ++= Seq(
         "-Djava.library.path=./sigar",
-        "-Xms128m", "-Xmx1024m"),
+        "-Xms128m", "-Xmx1024m"),*/
       javaOptions in Test ++= Seq(
-        "-Djava.library.path=./sigar",
+        //"-Djava.library.path=./sigar",
         "-Xms128m", "-Xmx1024m"),
       ivyScala := ivyScala.value map { _.copy(overrideScalaVersion = true) },
       resolvers ++= Seq(
@@ -54,7 +54,7 @@ object Build extends Build {
         "io.spray" %% "spray-can" % `spray-version` withSources() excludeAll ExclusionRule(organization = "org.json4s") exclude("io.spray", "spray-routing"),
         "io.spray" %% "spray-routing-shapeless2" % `spray-version` withSources() excludeAll ExclusionRule(organization = "org.json4s"),
         "de.flapdoodle.embed" % "de.flapdoodle.embed.mongo" % "1.50.2" withSources(),
-        "com.github.cb372" % "metrics-sigar" % "0.2.2",
+        //"com.github.cb372" % "metrics-sigar" % "0.2.2",
         "uk.gov.homeoffice" %% "rtp-io-lib" % `rtp-io-lib-version` withSources(),
         "uk.gov.homeoffice" %% "rtp-test-lib" % `rtp-test-lib-version` withSources()
       ) ++ Seq(
