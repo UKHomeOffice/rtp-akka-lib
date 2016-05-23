@@ -6,12 +6,12 @@ import scala.concurrent.duration._
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKitBase}
 import com.typesafe.config.{Config, ConfigFactory}
+import org.specs2.execute.{AsResult, Result}
 import org.specs2.mutable.SpecificationLike
-import org.specs2.specification.AfterAll
+import org.specs2.specification.AroundEach
 import grizzled.slf4j.Logging
-import uk.gov.homeoffice.specs2.SpecificationExpectations
 
-trait ActorSystemSpecification extends TestKitBase with ImplicitSender with AfterAll with SpecificationExpectations with Logging {
+trait ActorSystemSpecification extends AroundEach with TestKitBase with ImplicitSender with Logging {
   this: SpecificationLike =>
 
   isolated
@@ -21,7 +21,11 @@ trait ActorSystemSpecification extends TestKitBase with ImplicitSender with Afte
 
   implicit lazy val system: ActorSystem = ActorSystem(UUID.randomUUID().toString, config)
 
-  def afterAll() = {
+  implicit def any2Success[R](r: R): Result = success
+
+  override def around[R: AsResult](r: => R): Result = try {
+    AsResult(r)
+  } finally {
     info(s"Shutting down actor system $system")
     Await.ready(system.terminate(), 2 seconds)
   }
