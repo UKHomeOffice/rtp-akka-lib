@@ -1,9 +1,9 @@
 package uk.gov.homeoffice.akka
 
 import java.util.concurrent.TimeUnit.{MILLISECONDS => _}
-import scala.concurrent.Await
 import scala.concurrent.duration._
 import akka.actor.{Actor, ActorPath, ActorSystem, PoisonPill, Props}
+import akka.cluster.Cluster
 import akka.cluster.pubsub.DistributedPubSub
 import akka.cluster.pubsub.DistributedPubSubMediator.{Publish, Subscribe}
 import akka.cluster.singleton.{ClusterSingletonManager, ClusterSingletonManagerSettings}
@@ -80,12 +80,13 @@ class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification with
 
       // With 2 nodes running, a singleton actor can be pinged, but will crash leaving only 1 node.
       eventually(retries = 10, sleep = 3 seconds) {
-        info(s"Crashing.....")
+        info(s"Pinging.....")
         cluster.head.actorSelection("akka://my-actor-system/user/ping-actor/singleton") ! Ping
         expectMsgType[Pong]
       }
 
-      Await.ready(cluster.head.terminate(), 1 minute)
+      val clustered = Cluster(cluster.head)
+      clustered leave clustered.selfAddress
 
       // With only 1 node running, and configured to need at least 2 to form a cluster.
       val depletedCluster = cluster.tail
@@ -102,12 +103,13 @@ class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification with
 
       // With 3 nodes running, a singleton actor can be pinged, but will crash leaving 2 nodes.
       eventually(retries = 10, sleep = 3 seconds) {
-        info(s"Crashing.....")
+        info(s"Pinging.....")
         cluster.head.actorSelection("akka://my-actor-system/user/ping-actor/singleton") ! Ping
         expectMsgType[Pong]
       }
 
-      Await.ready(cluster.head.terminate(), 1 minute)
+      val clustered = Cluster(cluster.head)
+      clustered leave clustered.selfAddress
 
       // With 2 nodes running, a singleton actor can be pinged.
       val depletedCluster = cluster.tail
