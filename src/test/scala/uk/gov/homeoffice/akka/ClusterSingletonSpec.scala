@@ -2,7 +2,9 @@ package uk.gov.homeoffice.akka
 
 import java.util.concurrent.TimeUnit.{MILLISECONDS => _}
 import scala.concurrent.duration._
-import akka.actor.{Actor, ActorPath, ActorSystem, PoisonPill, Props, Terminated}
+import akka.actor.{Actor, ActorPath, ActorSystem, PoisonPill, Props}
+import akka.cluster.Cluster
+import akka.cluster.ClusterEvent.{MemberEvent, MemberRemoved}
 import akka.cluster.pubsub.DistributedPubSub
 import akka.cluster.pubsub.DistributedPubSubMediator.{Publish, Subscribe}
 import akka.cluster.singleton.{ClusterSingletonManager, ClusterSingletonManagerSettings}
@@ -84,13 +86,23 @@ class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification with
         expectMsgType[Pong]
       }
 
-      cluster.head.terminate must beLike[Terminated] {
-        case Terminated(_) =>
-          // With only 1 node running, and configured to need at least 2 to form a cluster.
-          val depletedCluster = cluster.tail
-          depletedCluster.head.actorSelection("akka://my-actor-system/user/ping-actor/singleton") ! Ping
-          expectNoMsg(10 seconds)
-      }.awaitFor(1 minute)
+      // 1 node leaves the cluster.
+      cluster.head.eventStream.subscribe(self, classOf[MemberEvent])
+
+      Cluster(cluster.head).down(Cluster(cluster.head).selfAddress)
+
+      eventuallyExpectMsg[MemberRemoved] {
+        case MemberRemoved(_, _) => ok
+      }
+
+      // With only 1 node running, and configured to need at least 2 to form a cluster.
+      val depletedCluster = cluster.tail
+      depletedCluster.head.actorSelection("akka://my-actor-system/user/ping-actor/singleton") ! Ping
+
+      expectMsgPF(30 seconds) {
+        case Pong(_, _) => ko
+        case _ => ok
+      }
     }
 
     "run singleton actor for 3 running nodes, even after bringing down the leading node" in new Context {
@@ -107,17 +119,23 @@ class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification with
         expectMsgType[Pong]
       }
 
-      cluster.head.terminate must beLike[Terminated] {
-        case Terminated(_) =>
-          // With 2 nodes running, a singleton actor can be pinged.
-          val depletedCluster = cluster.tail
+      // 1 node leaves the cluster.
+      cluster.head.eventStream.subscribe(self, classOf[MemberEvent])
 
-          eventually(retries = 10, sleep = 3 seconds) {
-            info(s"Pinging.....")
-            depletedCluster.head.actorSelection("akka://my-actor-system/user/ping-actor/singleton") ! Ping
-            expectMsgType[Pong]
-          }
-      }.awaitFor(1 minute)
+      Cluster(cluster.head).down(Cluster(cluster.head).selfAddress)
+
+      eventuallyExpectMsg[MemberRemoved] {
+        case MemberRemoved(_, _) => ok
+      }
+
+      // With 2 nodes running, a singleton actor can be pinged.
+      val depletedCluster = cluster.tail
+
+      eventually(retries = 10, sleep = 3 seconds) {
+        info(s"Pinging.....")
+        depletedCluster.head.actorSelection("akka://my-actor-system/user/ping-actor/singleton") ! Ping
+        expectMsgType[Pong]
+      }
     }
   }
 }
