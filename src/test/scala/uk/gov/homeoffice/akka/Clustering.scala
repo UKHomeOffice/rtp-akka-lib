@@ -7,7 +7,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.config.ConfigFactory._
 import de.flapdoodle.embed.process.runtime.Network._
 
-trait ClusterSingleton {
+trait Clustering {
   def cluster(numberOfNodes: Int, extraConfig: Config = ConfigFactory.empty()): Seq[ActorSystem] = try {
     val ports: Seq[Int] = 1 to numberOfNodes map { _ => freePort }
 

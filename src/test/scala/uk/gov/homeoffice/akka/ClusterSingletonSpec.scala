@@ -13,7 +13,7 @@ import org.specs2.mutable.Specification
 class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification with ActorSystemSpecification {
   import PingActor._
 
-  trait Context extends ActorSystemContext with ActorExpectations with ClusterSingleton
+  trait Context extends ActorSystemContext with ActorExpectations with Clustering
 
   "Cluster singleton" should {
     "not have a singleton actor running when only 1 node is running" in new Context {
