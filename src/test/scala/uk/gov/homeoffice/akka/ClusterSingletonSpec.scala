@@ -9,15 +9,17 @@ import akka.cluster.pubsub.DistributedPubSubMediator.{Publish, Subscribe}
 import akka.cluster.singleton.{ClusterSingletonManager, ClusterSingletonManagerSettings}
 import com.typesafe.config.ConfigFactory
 import org.specs2.concurrent.ExecutionEnv
-import org.specs2.matcher.Scope
 import org.specs2.mutable.Specification
 import grizzled.slf4j.Logging
+import uk.gov.homeoffice.specs2.SpecificationExpectations
 
-class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification with ActorSystemSpecification with ActorExpectations with Logging {
+class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification with SpecificationExpectations with Logging {
   import PingActor._
 
+  trait Context extends ActorSystemContext with ActorExpectations with ClusterSingleton
+
   "Cluster singleton" should {
-    "not have a singleton actor running when only 1 node is running" in new ClusterSingleton with Scope {
+    "not have a singleton actor running when only 1 node is running" in new Context {
       val cluster: Seq[ActorSystem] = cluster(1)
 
       cluster.zipWithIndex foreach { case (actorSystem, index) =>
@@ -28,11 +30,11 @@ class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification with
       expectNoMsg(10 seconds)
     }
 
-    "run singleton actor for 2 running nodes" in new ClusterSingleton {
+    "run singleton actor for 2 running nodes" in new Context {
       val cluster: Seq[ActorSystem] = cluster(2)
 
       cluster.zipWithIndex foreach { case (actorSystem, index) =>
-        actorSystem.actorOf(PingActor.props(actorSystem, index + 1), s"ping-actor")
+        actorSystem.actorOf(PingActor.props(actorSystem, index + 1), "ping-actor")
       }
 
       // With 2 nodes running, a singleton actor can be pinged.
@@ -43,7 +45,7 @@ class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification with
       }
     }
 
-    "run singleton actor for 2 running nodes - using distributed pub/sub" in new ClusterSingleton with Scope {
+    "run singleton actor for 2 running nodes - using distributed pub/sub" in new Context {
       case object ActorRunning
 
       val cluster: Seq[ActorSystem] = cluster(2)
@@ -71,11 +73,11 @@ class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification with
       }
     }
 
-    "run singleton actor for 2 running nodes, but then fail upon bringing down the leading node" in new ClusterSingleton with Scope {
+    "run singleton actor for 2 running nodes, but then fail upon bringing down the leading node" in new Context {
       val cluster: Seq[ActorSystem] = cluster(2, ConfigFactory.parseString("akka.cluster.auto-down-unreachable-after = 30s"))
 
       cluster.zipWithIndex foreach { case (actorSystem, index) =>
-        actorSystem.actorOf(PingActor.props(actorSystem, index + 1), s"ping-actor")
+        actorSystem.actorOf(PingActor.props(actorSystem, index + 1), "ping-actor")
       }
 
       // With 2 nodes running, a singleton actor can be pinged.
@@ -94,11 +96,11 @@ class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification with
       expectNoMsg(10 seconds)
     }
 
-    "run singleton actor for 3 running nodes, even after bringing down the leading node" in new ClusterSingleton with Scope {
+    "run singleton actor for 3 running nodes, even after bringing down the leading node" in new Context {
       val cluster: Seq[ActorSystem] = cluster(3, ConfigFactory.parseString("akka.cluster.auto-down-unreachable-after = 1s"))
 
       cluster.zipWithIndex foreach { case (actorSystem, index) =>
-        actorSystem.actorOf(PingActor.props(actorSystem, index + 1), s"ping-actor")
+        actorSystem.actorOf(PingActor.props(actorSystem, index + 1), "ping-actor")
       }
 
       // With 3 nodes running, a singleton actor can be pinged.
