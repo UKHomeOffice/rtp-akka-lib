@@ -8,7 +8,7 @@ import org.specs2.mutable.Specification
 import uk.gov.homeoffice.akka.schedule.Protocol.{IsScheduled, NotScheduled, Scheduled}
 import uk.gov.homeoffice.akka.schedule.{NoSchedule, Schedule, Scheduler}
 
-class SchedulerSpec extends Specification {
+class SchedulerSpec extends Specification with ActorSystemSpecification {
   "Actor" should {
     "be scheduled to act as a poller" in new ActorSystemContext {
       val exampleSchedulerActor = system actorOf Props(new ExampleSchedulerActor)

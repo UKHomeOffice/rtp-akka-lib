@@ -9,7 +9,7 @@ import org.specs2.mutable.Specification
 import uk.gov.homeoffice.akka.schedule.Protocol.{Scheduled, Wakeup}
 import uk.gov.homeoffice.akka.schedule.{NoScheduling, Schedule, Scheduling}
 
-class SchedulingSpec extends Specification {
+class SchedulingSpec extends Specification with ActorSystemSpecification {
   trait Context extends ActorSystemContext {
     system.eventStream.subscribe(self, classOf[Scheduled])
   }
