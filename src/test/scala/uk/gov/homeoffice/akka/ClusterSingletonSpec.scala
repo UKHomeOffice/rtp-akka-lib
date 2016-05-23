@@ -85,7 +85,7 @@ class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification with
         expectMsgType[Pong]
       }
 
-      Await.ready(cluster.head.terminate(), 10 seconds)
+      Await.ready(cluster.head.terminate(), 1 minute)
 
       // With only 1 node running, and configured to need at least 2 to form a cluster.
       val depletedCluster = cluster.tail
@@ -107,7 +107,7 @@ class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification with
         expectMsgType[Pong]
       }
 
-      Await.ready(cluster.head.terminate(), 10 seconds)
+      Await.ready(cluster.head.terminate(), 1 minute)
 
       // With 2 nodes running, a singleton actor can be pinged.
       val depletedCluster = cluster.tail

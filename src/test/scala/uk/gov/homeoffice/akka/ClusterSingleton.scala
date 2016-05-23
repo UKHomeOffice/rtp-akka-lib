@@ -35,6 +35,17 @@ trait ClusterSingleton {
     }
   }
 
+  /**
+    * # Disable legacy metrics in akka-cluster.
+    * akka.cluster.metrics.enabled=off
+    *
+    * # Enable metrics extension in akka-cluster-metrics.
+    * akka.extensions=["akka.cluster.metrics.ClusterMetricsExtension"]
+    *
+    * # Sigar native library extract location during tests.
+    * # Note: use per-jvm-instance folder when running multiple jvm on one host.
+    * akka.cluster.metrics.native-library-extract-folder=${user.dir}/target/native
+    */
   def clusterConfig(ports: Seq[Int]): Config = {
     val seedNodes = ports map { port =>
       s""""akka.tcp://my-actor-system@127.0.0.1:$port""""
@@ -48,10 +59,13 @@ trait ClusterSingleton {
 
         remote {
           enabled-transports = ["akka.remote.netty.tcp"]
+          log-remote-lifecycle-events = off
 
-          netty.tcp {
-            hostname = "127.0.0.1"
-            port = 0 # To be overridden in code for each running node in a cluster
+          netty {
+            tcp {
+              hostname = "127.0.0.1"
+              port = 0 # To be overridden in code for each running node in a cluster
+            }
           }
         }
 
@@ -73,15 +87,3 @@ trait ClusterSingleton {
       }"""))
   }
 }
-
-/*
-# Disable legacy metrics in akka-cluster.
-akka.cluster.metrics.enabled=off
-
-# Enable metrics extension in akka-cluster-metrics.
-akka.extensions=["akka.cluster.metrics.ClusterMetricsExtension"]
-
-# Sigar native library extract location during tests.
-# Note: use per-jvm-instance folder when running multiple jvm on one host.
-akka.cluster.metrics.native-library-extract-folder=${user.dir}/target/native
- */
