@@ -1,22 +1,19 @@
 package uk.gov.homeoffice.akka
 
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeUnit.{MILLISECONDS => _}
 import scala.concurrent.duration._
 import akka.actor.{Actor, ActorPath, ActorSystem, PoisonPill, Props}
 import akka.cluster.pubsub.DistributedPubSub
 import akka.cluster.pubsub.DistributedPubSubMediator.{Publish, Subscribe}
 import akka.cluster.singleton.{ClusterSingletonManager, ClusterSingletonManagerSettings}
-import akka.event.Logging.LogEvent
 import com.typesafe.config.ConfigFactory
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.matcher.Scope
 import org.specs2.mutable.Specification
+import grizzled.slf4j.Logging
 
-class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification with ActorSystemSpecification with ActorExpectations {
+class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification with ActorSystemSpecification with ActorExpectations with Logging {
   import PingActor._
-
-  case object ActorRunning
 
   "Cluster singleton" should {
     "not have a singleton actor running when only 1 node is running" in new ClusterSingleton with Scope {
@@ -26,7 +23,8 @@ class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification with
         actorSystem.actorOf(PingActor.props(actorSystem, index + 1), "ping-actor")
       }
 
-      expectNoMsg()
+      // With only 1 node running, and configured to need at least 2 to form a cluster.
+      expectNoMsg(10 seconds)
     }
 
     "run singleton actor for 2 running nodes" in new ClusterSingleton {
@@ -36,111 +34,80 @@ class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification with
         actorSystem.actorOf(PingActor.props(actorSystem, index + 1), s"ping-actor")
       }
 
-      cluster.head.eventStream.subscribe(self, classOf[LogEvent])
-
-      eventuallyExpectMsg[LogEvent] {
-        case l: LogEvent => l.message.toString.contains("-> Oldest")
+      // With 2 nodes running, a singleton actor can be pinged.
+      eventually(retries = 10, sleep = 3 seconds) {
+        info(s"Pinging.....")
+        cluster.head.actorSelection("akka://my-actor-system/user/ping-actor/singleton") ! Ping
+        expectMsgType[Pong]
       }
-
-      cluster.head.actorSelection("akka://my-actor-system/user/ping-actor/singleton") ! Ping
-
-      expectMsgType[Pong](10 seconds)
     }
 
     "run singleton actor for 2 running nodes - using distributed pub/sub" in new ClusterSingleton with Scope {
+      case object ActorRunning
+
       val cluster: Seq[ActorSystem] = cluster(2)
 
       cluster.zipWithIndex foreach { case (actorSystem, index) =>
         actorSystem.actorOf(PingActor.props(actorSystem, index + 1), "ping-actor")
       }
 
-      cluster.head.eventStream.subscribe(self, classOf[LogEvent])
+      // With 2 nodes running, a singleton actor can be pinged by publishing to a known "topic".
+      eventually(retries = 10, sleep = 3 seconds) {
+        cluster.head actorOf Props {
+          new Actor {
+            override def preStart(): Unit = {
+              val mediator = DistributedPubSub(context.system).mediator
+              mediator ! Publish("content", Ping)
+            }
 
-      eventuallyExpectMsg[LogEvent] {
-        case l: LogEvent => l.message.toString.contains("-> Oldest")
-      }
-
-      cluster.head actorOf Props {
-        new Actor {
-          override def preStart(): Unit = {
-            val mediator = DistributedPubSub(context.system).mediator
-            mediator ! Publish("content", Ping)
-          }
-
-          override def receive: Receive = {
-            case Pong(actorPath, id) =>
-              println(s"===> Got back pong from $actorPath with ID $id")
-              testActor ! ActorRunning
+            override def receive: Receive = {
+              case Pong(actorPath, id) => testActor ! ActorRunning
+            }
           }
         }
-      }
 
-      expectMsgType[ActorRunning.type](10 seconds)
+        expectMsgType[ActorRunning.type](10 seconds)
+      }
     }
 
     "run singleton actor for 2 running nodes, but then fail upon bringing down the leading node" in new ClusterSingleton with Scope {
       val cluster: Seq[ActorSystem] = cluster(2, ConfigFactory.parseString("akka.cluster.auto-down-unreachable-after = 30s"))
 
       cluster.zipWithIndex foreach { case (actorSystem, index) =>
-        actorSystem.actorOf(PingActor.props(actorSystem, index + 1), "ping-actor")
+        actorSystem.actorOf(PingActor.props(actorSystem, index + 1), s"ping-actor")
       }
 
-      cluster.head.eventStream.subscribe(self, classOf[LogEvent])
-
-      eventuallyExpectMsg[LogEvent] {
-        case l: LogEvent => l.message.toString.contains("-> Oldest")
+      // With 2 nodes running, a singleton actor can be pinged, but will crash leaving only 1 node.
+      eventually(retries = 10, sleep = 3 seconds) {
+        info(s"Crashing.....")
+        cluster.head.actorSelection("akka://my-actor-system/user/ping-actor/singleton") ! Crash
+        expectMsgType[Crashed]
       }
 
-      cluster.head.actorSelection("akka://my-actor-system/user/ping-actor/singleton") ! Ping
-
-      expectMsgType[Pong](10 seconds)
-
+      // With only 1 node running, and configured to need at least 2 to form a cluster.
       val depletedCluster = cluster.tail
-
-      depletedCluster.head.eventStream.subscribe(self, classOf[LogEvent])
-
-      cluster.head.terminate()
-
-      TimeUnit.SECONDS.sleep(10)
-
       depletedCluster.head.actorSelection("akka://my-actor-system/user/ping-actor/singleton") ! Ping
-
-      expectMsgPF() {
-        case Pong(_, _) => ko
-        case _ => ok
-      }
+      expectNoMsg(10 seconds)
     }
 
     "run singleton actor for 3 running nodes, even after bringing down the leading node" in new ClusterSingleton with Scope {
       val cluster: Seq[ActorSystem] = cluster(3, ConfigFactory.parseString("akka.cluster.auto-down-unreachable-after = 1s"))
 
       cluster.zipWithIndex foreach { case (actorSystem, index) =>
-        actorSystem.actorOf(PingActor.props(actorSystem, index + 1), "ping-actor")
+        actorSystem.actorOf(PingActor.props(actorSystem, index + 1), s"ping-actor")
       }
 
-      cluster.head.eventStream.subscribe(self, classOf[LogEvent])
-
-      eventuallyExpectMsg[LogEvent] {
-        case l: LogEvent => l.message.toString.contains("-> Oldest")
+      // With 3 nodes running, a singleton actor can be pinged, but will crash leaving 2 nodes.
+      eventually(retries = 10, sleep = 3 seconds) {
+        info(s"Crashing.....")
+        cluster.head.actorSelection("akka://my-actor-system/user/ping-actor/singleton") ! Crash
+        expectMsgType[Crashed]
       }
 
-      cluster.head.actorSelection("akka://my-actor-system/user/ping-actor/singleton") ! Ping
-
-      expectMsgType[Pong](10 seconds)
-
+      // With 2 nodes running, a singleton actor can be pinged.
       val depletedCluster = cluster.tail
-
-      depletedCluster.head.eventStream.subscribe(self, classOf[LogEvent])
-
-      cluster.head.terminate()
-
-      eventuallyExpectMsg[LogEvent] {
-        case l: LogEvent => l.message.toString.contains("-> Oldest")
-      }
-
       depletedCluster.head.actorSelection("akka://my-actor-system/user/ping-actor/singleton") ! Ping
-
-      expectMsgType[Pong](10 seconds)
+      expectNoMsg(10 seconds)
     }
   }
 }
@@ -149,6 +116,10 @@ object PingActor {
   case object Ping
 
   case class Pong(a: ActorPath, id: Int)
+
+  case object Crash
+
+  case class Crashed(a: ActorPath, id: Int)
 
   def props(system: ActorSystem, id: Int) = ClusterSingletonManager.props(
     singletonProps = Props(new PingActor(id)),
@@ -169,5 +140,10 @@ class PingActor(id: Int) extends Actor {
     case Ping =>
       println(s"===> Ponging from actor with ID $id")
       sender() ! Pong(self.path, id)
+
+    case Crash =>
+      println(s"===> Crashing actor with ID $id")
+      sender() ! Crashed(self.path, id)
+      context.stop(self)
   }
 }

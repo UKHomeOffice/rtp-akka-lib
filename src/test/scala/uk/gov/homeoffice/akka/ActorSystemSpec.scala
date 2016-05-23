@@ -67,16 +67,18 @@ class ActorSystemSpec extends Specification with ActorSystemSpecification {
   }
 
   "Actor state for named actor" should {
-    val actor = system.actorOf(Props(new TestActor), "named")
-
     "not be unique for an example" in {
+      val actor = system.actorOf(Props(new TestActor), "named")
+
       actor ! AddToState(1)
       expectMsg(State(Vector(1)))
     }
 
     "not be unique for another example" in {
+      val actor = system.actorOf(Props(new TestActor), "named")
+
       actor ! AddToState(2)
-      expectMsg(State(Vector(1, 2)))
+      expectMsg(State(Vector(2)))
     }
   }
 }
