@@ -7,6 +7,7 @@ import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKitBase}
 import com.typesafe.config.{Config, ConfigFactory}
 import org.specs2.execute.{AsResult, Result}
+import org.specs2.matcher.MatchResult
 import org.specs2.mutable.SpecificationLike
 import org.specs2.specification.Scope
 import grizzled.slf4j.Logging
@@ -19,6 +20,8 @@ trait ActorSystemSpecification extends Logging {
   sequential
 
   implicit def any2Success[R](r: R): Result = success
+
+  implicit def any2MatchResult[R](r: R): MatchResult[Any] = ok
 
   abstract class ActorSystemContext(val config: Config = ConfigFactory.load) extends TestKitBase with ImplicitSender with Scope with ComposableAround {
     implicit lazy val system: ActorSystem = ActorSystem(UUID.randomUUID().toString, config)
