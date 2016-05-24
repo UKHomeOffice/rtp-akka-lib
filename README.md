@@ -209,14 +209,7 @@ Akka Clustering
 ---------------
 Cluster Singleton:
 
-Actors can be managed in a cluster to run as a singleton - an actor will be distributed on multiple nodes, but only one will be running. Before looking at the necessary configuration, a quick note on metrics - these can be gathered by sigar where we have have to stipulate the "Java library path" to the necessary OS specific files. When running an application from a JAR, we can do:
-```bash
-java -Djava.library.path=./sigar
-```
-
-Note that without setting the "Java library path" an exception (that can be ignored) occurs.
-
-sigar is only used for metrics but is not needed. See https://support.hyperic.com
+Actors can be managed in a cluster to run as a singleton - an actor will be distributed on multiple nodes, but only one will be running.
 
 Your application.conf for a Cluster Singleton, can use the following template:
 ```json
@@ -250,7 +243,3 @@ akka {
 
 Each node that starts up on the same box would need a different port e.g. 2551, 2552 etc.
 In production, the nodes would be on different boxes and so can all have the same ports and said port could then also be declared for akka.actor.remote.netty.tcp.port.
-
-To start your application from a JAR and stipulate the boot (main) class, when needing to override akka.actor.remote.netty.tcp.port:
-```bash
-java -Djava.library.path=./sigar -cp application.jar blah.MainStipulatingPortNumber
