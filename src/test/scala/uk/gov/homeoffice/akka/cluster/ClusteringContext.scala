@@ -1,13 +1,16 @@
-package uk.gov.homeoffice.akka
+package uk.gov.homeoffice.akka.cluster
 
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeUnit._
 import akka.actor.ActorSystem
-import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.config.ConfigFactory._
+import com.typesafe.config.{Config, ConfigFactory}
+import org.specs2.matcher.Scope
 import de.flapdoodle.embed.process.runtime.Network._
 
-trait Clustering {
+trait ClusteringContext {
+  this: Scope =>
+
   def cluster(numberOfNodes: Int, extraConfig: Config = ConfigFactory.empty()): Seq[ActorSystem] = try {
     val ports: Seq[Int] = 1 to numberOfNodes map { _ => freePort }
 
