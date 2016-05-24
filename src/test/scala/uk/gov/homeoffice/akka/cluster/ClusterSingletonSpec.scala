@@ -1,4 +1,4 @@
-package uk.gov.homeoffice.akka
+package uk.gov.homeoffice.akka.cluster
 
 import java.util.concurrent.TimeUnit.{MILLISECONDS => _}
 import scala.concurrent.duration._
@@ -11,11 +11,12 @@ import akka.cluster.singleton.{ClusterSingletonManager, ClusterSingletonManagerS
 import com.typesafe.config.ConfigFactory
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.mutable.Specification
+import uk.gov.homeoffice.akka.{ActorExpectations, ActorSystemSpecification}
 
 class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification with ActorSystemSpecification {
   import PingActor._
 
-  trait Context extends ActorSystemContext with ActorExpectations with Clustering
+  trait Context extends ActorSystemContext with ActorExpectations with ClusteringContext
 
   "Cluster singleton" should {
     "not have a singleton actor running when only 1 node is running" in new Context {
