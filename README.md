@@ -236,7 +236,7 @@ akka {
 
     roles = ["your-service"]
     min-nr-of-members = 2
-    auto-down-unreachable-after = 30s
+    auto-down-unreachable-after = 30 seconds
   }
 }
 ```
