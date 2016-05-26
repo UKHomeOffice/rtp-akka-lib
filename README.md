@@ -212,7 +212,7 @@ Cluster Singleton:
 Actors can be managed in a cluster to run as a singleton - an actor will be distributed on multiple nodes, but only one will be running.
 
 Your application.conf for a Cluster Singleton, can use the following template:
-```json
+```javascript
 akka {
   actor {
     provider = "akka.cluster.ClusterActorRefProvider"
@@ -238,7 +238,7 @@ akka {
     min-nr-of-members = 2
     auto-down-unreachable-after = 30s
   }
-}  
+}
 ```
 
 Each node that starts up on the same box would need a different port e.g. 2551, 2552 etc.
