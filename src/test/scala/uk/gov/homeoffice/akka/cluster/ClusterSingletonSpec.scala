@@ -15,7 +15,7 @@ import uk.gov.homeoffice.akka.{ActorExpectations, ActorSystemSpecification}
 
 // TODO Migrate to using uk.gov.homeoffice.akka.cluster.ClusterActorSystem
 class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification with ActorSystemSpecification {
-  skipAll
+  sequential
 
   import PingActor._
 
