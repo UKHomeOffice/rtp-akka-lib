@@ -67,7 +67,7 @@ import grizzled.slf4j.Logging
   *   }
   * </pre>
   */
-@deprecated(message = "Use ClusterActorSystem", since = "8th September 2016")
+@deprecated(message = "Use uk.gov.homeoffice.akka.cluster.ClusterActorSystem", since = "8th September 2016")
 trait Clustering extends Logging {
   def config: Config
 

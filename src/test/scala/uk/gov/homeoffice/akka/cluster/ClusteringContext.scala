@@ -8,6 +8,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 import org.specs2.matcher.Scope
 import de.flapdoodle.embed.process.runtime.Network._
 
+@deprecated(message = "Use uk.gov.homeoffice.akka.cluster.ClusterActorSystem", since = "8th September 2016")
 trait ClusteringContext {
   this: Scope =>
 

@@ -2,15 +2,14 @@ package uk.gov.homeoffice.akka.cluster
 
 import java.util.UUID
 import scala.collection.JavaConversions._
-import scala.concurrent.Future
 import scala.concurrent.duration._
 import akka.actor.{Actor, ActorSystem, Props}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 import com.typesafe.config.ConfigFactory
+import org.jboss.netty.channel.ChannelException
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.execute.{AsResult, Result}
-import org.specs2.matcher.MatchResult
 import org.specs2.mutable.Specification
 import uk.gov.homeoffice.akka.ActorSystemSpecification
 import uk.gov.homeoffice.io.Network
@@ -18,8 +17,6 @@ import uk.gov.homeoffice.specs2._
 
 class ClusterActorSystemSpec(implicit ev: ExecutionEnv) extends Specification with ActorSystemSpecification with Network {
   sequential // Simply because each example can slow each down when running in parallel
-
-  def awaiting[T]: Future[MatchResult[T]] => Result = { _.awaitFor(10 seconds) }
 
   trait Context extends ActorSystemContext {
     private var actorSystems = Seq.empty[ActorSystem]
@@ -131,19 +128,22 @@ class ClusterActorSystemSpec(implicit ev: ExecutionEnv) extends Specification wi
       expectMsgType[MemberJoined](30 seconds)
     }
 
-    "start up with 3 nodes" in {
-      todo
+    "start up with 3 nodes" in new Context {
+      val (cluster, Seq(_, _, _)) = clusterActorSystems(3)
+
+      times(3) {
+        expectMsgType[MemberJoined](30 seconds)
+      }
+
+      times(3) {
+        expectMsgType[MemberUp](30 seconds)
+      }
     }
 
-    "Giving same node... what happens?" in {
-      skipped
+    "not allow 2 nodes on the same box to use the same port" in new Context {
+      val (cluster, Seq(actorSystem)) = clusterActorSystems(1)
 
-      val config = ConfigFactory.load("application-2-nodes.test.conf")
-
-      val node1ActorSystem = ClusterActorSystem("test-system", config, 1)
-      val node2ActorSystem = ClusterActorSystem("test-system", config, 1)
-
-      ko
+      ClusterActorSystem(actorSystem.name, actorSystem.settings.config, 1) must throwA[ChannelException]
     }
   }
 }
