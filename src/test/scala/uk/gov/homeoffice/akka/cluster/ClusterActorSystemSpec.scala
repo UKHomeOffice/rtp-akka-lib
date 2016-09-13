@@ -8,15 +8,14 @@ import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 import com.typesafe.config.ConfigFactory
 import org.jboss.netty.channel.ChannelException
-import org.specs2.concurrent.ExecutionEnv
 import org.specs2.execute.{AsResult, Result}
 import org.specs2.mutable.Specification
 import uk.gov.homeoffice.akka.ActorSystemSpecification
 import uk.gov.homeoffice.io.Network
 import uk.gov.homeoffice.specs2._
 
-class ClusterActorSystemSpec(implicit ev: ExecutionEnv) extends Specification with ActorSystemSpecification with Network {
-  sequential // Simply because each example can slow each down when running in parallel
+class ClusterActorSystemSpec extends Specification with ActorSystemSpecification with Network {
+  sequential // Simply because each example can slow each down when running in parallel that includes the likelyhood of timeouts.
 
   trait Context extends ActorSystemContext {
     private var actorSystems = Seq.empty[ActorSystem]
