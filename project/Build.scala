@@ -9,6 +9,7 @@ object Build extends Build {
     .configs(IntegrationTest)
     .settings(Revolver.settings)
     .settings(Defaults.itSettings: _*)
+    .settings(javaOptions in Test += "-Dconfig.resource=application.test.conf")
     .settings(
       name := moduleName,
       organization := "uk.gov.homeoffice",
@@ -33,9 +34,9 @@ object Build extends Build {
       )
     )
     .settings(libraryDependencies ++= {
-      val `akka-version` = "2.4.5"
+      val `akka-version` = "2.4.10"
       val `spray-version` = "1.3.3"
-      val `rtp-io-lib-version` = "1.7.16"
+      val `rtp-io-lib-version` = "1.7.19"
       val `rtp-test-lib-version` = "1.3.4"
 
       Seq(

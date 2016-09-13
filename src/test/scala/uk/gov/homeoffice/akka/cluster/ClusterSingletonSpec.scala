@@ -13,7 +13,10 @@ import org.specs2.concurrent.ExecutionEnv
 import org.specs2.mutable.Specification
 import uk.gov.homeoffice.akka.{ActorExpectations, ActorSystemSpecification}
 
+// TODO Migrate to using uk.gov.homeoffice.akka.cluster.ClusterActorSystem
 class ClusterSingletonSpec(implicit ev: ExecutionEnv) extends Specification with ActorSystemSpecification {
+  sequential
+
   import PingActor._
 
   trait Context extends ActorSystemContext with ActorExpectations with ClusteringContext
