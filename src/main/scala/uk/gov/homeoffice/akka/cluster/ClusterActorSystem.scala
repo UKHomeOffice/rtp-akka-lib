@@ -9,32 +9,32 @@ import uk.gov.homeoffice.configuration.ConfigFactorySupport
 
 /**
   * Create an Actor System that can be clustered by enhancing an application Config,
-  * which is expected to be a default configuration as per the Javadoc from com.typesafe.config.ConfigFactory.load:
-  * <pre>
-  *   * Loads a default configuration, equivalent to [[com.typesafe.config.ConfigFactory.load(Config)]] in most cases.
+  * which is expected to be a default configuration as per the Javadoc from [[https://typesafehub.github.io/config/latest/api/com/typesafe/config/ConfigFactory.html#load-com.typesafe.config.Config- ConfigFactory.load(Config)]]:
+  * {{{
+  *   * Loads a default configuration, equivalent to com.typesafe.config.ConfigFactory.load(com.typesafe.config.Config) in most cases.
   *   * This configuration should be used by libraries and frameworks unless an application provides a different one.
   *   * This method may return a cached singleton so will not see changes to system properties or config files.
-  *   * (Use [[com.typesafe.config.ConfigFactory.invalidateCaches()]] to force it to reload.)
+  *   * (Use com.typesafe.config.ConfigFactory.invalidateCaches() to force it to reload.)
   *   * @return configuration for an application
   *   public static Config load()
-  * </pre>
+  * }}}
   *
   * The config just has to provide seed nodes of the following format:
-  * <pre>
+  * {{{
   *   akka {
   *     cluster {
   *       seed-nodes = [{
   *         host = "127.0.0.1"
-  *         host = ${?CLUSTER_SEED_NODE_HOST_1} # If using environment variables
+  *         host = \${?CLUSTER_SEED_NODE_HOST_1} # If using environment variables
   *
   *         port = 2661
-  *         port = ${?CLUSTER_SEED_NODE_PORT_1}
+  *         port = \${?CLUSTER_SEED_NODE_PORT_1}
   *       }, {
   *         host = "127.0.0.1"
-  *         host = ${?CLUSTER_SEED_NODE_HOST_2}
+  *         host = \${?CLUSTER_SEED_NODE_HOST_2}
   *
   *         port = 2662
-  *         port = ${?CLUSTER_SEED_NODE_PORT_2}
+  *         port = \${?CLUSTER_SEED_NODE_PORT_2}
   *       }]
   *     }
   *   }
@@ -46,30 +46,30 @@ import uk.gov.homeoffice.configuration.ConfigFactorySupport
   *       seed-nodes {
   *         1 {
   *           host = "127.0.0.1"
-  *           host = ${?CLUSTER_SEED_NODE_HOST_1} # If using environment variables
+  *           host = \${?CLUSTER_SEED_NODE_HOST_1} # If using environment variables
   *
   *           port = 2661
-  *           port = ${?CLUSTER_SEED_NODE_PORT_1}
+  *           port = \${?CLUSTER_SEED_NODE_PORT_1}
   *         }
   *
   *         2 {
   *           host = "127.0.0.1"
-  *           host = ${?CLUSTER_SEED_NODE_HOST_2}
+  *           host = \${?CLUSTER_SEED_NODE_HOST_2}
   *
   *           port = 2662
-  *           port = ${?CLUSTER_SEED_NODE_PORT_2}
+  *           port = \${?CLUSTER_SEED_NODE_PORT_2}
   *         }
   *       }
   *     }
   *   }
-  * </pre>
+  * }}}
   *
   * Note, that if you do not want the default cluster name of "cluster-actor-system" for this cluster actor system, then provide one e.g.
-  * <pre>
+  * {{{
   *   akka {
   *     cluster {
   *       name = "yourClusterActorSystemName"
-  * </pre>
+  * }}}
   */
 object ClusterActorSystem {
   private val clusterActorSystem = new ClusterActorSystem(ConfigFactory.load)
