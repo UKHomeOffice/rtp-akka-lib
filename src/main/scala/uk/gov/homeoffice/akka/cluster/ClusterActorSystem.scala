@@ -100,11 +100,11 @@ object ClusterActorSystem {
     * Create/Get an Actor System as a seed node of a cluster.
     * @param node Int Representing the node number of the seed nodes e.g. node 2 of 3 seed nodes.
     *             Client code will probably want this to be given as an environment variable e.g.
-    *             -Dcluster.node=1, captured in code as sys.props("cluster.node").toInt
-    *             and indeed, this is the default.
+    *             -Dcluster.node=1, captured in code as sys.props("cluster.node").toInt, and indeed, this is the default.
+    *             NOTE that we go by node numbers starting from 1 i.e. non-technical index based and so not starting from 0 index.
     * @return ActorSystem that is part of a cluster
     */
-  def apply(node: Int = sys.props("cluster.node").toInt): ActorSystem = clusterActorSystem.node(1)
+  def apply(node: Int = sys.props("cluster.node").toInt): ActorSystem = clusterActorSystem.node(node)
 
   /**
     * Create/Get an Actor System to dynamically add to cluster seed nodes.
@@ -145,6 +145,7 @@ protected class ClusterActorSystem(config: Config) extends ConfigFactorySupport 
     * @param node Int Representing the node number of the seed nodes e.g. node 2 of 3 seed nodes.
     *             Client code will probably want this to be given as an environment variable e.g.
     *             -Dcluster.node=1, captured in code as sys.props("cluster.node").toInt, and indeed, this is the default.
+    *             NOTE that we go by node numbers starting from 1 i.e. non-technical index based and so not starting from 0 index.
     * @return ActorSystem that is part of a cluster
     */
   def node(node: Int = sys.props("cluster.node").toInt): ActorSystem = seedNodes(node - 1).actorSystem
