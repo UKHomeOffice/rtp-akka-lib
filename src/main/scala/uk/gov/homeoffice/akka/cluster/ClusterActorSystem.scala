@@ -85,6 +85,10 @@ import uk.gov.homeoffice.configuration.ConfigFactorySupport
   * }}}
   *
   * This example shows how we use environment variables to set specific ports for the second and third nodes.
+  * And if necessary, a non seed-node could be started up as:
+  * {{{
+  *   sbt '; set javaOptions ++= Seq("-Dcluster.host=127.0.0.1", "-Dcluster.port=2665"); run'
+  * }}}
   *
   * Or running the assembled JAR:
   * {{{
