@@ -97,14 +97,37 @@ object ClusterActorSystem {
   private val clusterActorSystem = new ClusterActorSystem(ConfigFactory.load)
 
   /**
+    * Create/Get an Actor System as a seed node of a cluster OR as a "dynamic" node (a non seed node).
+    * Unlike the other "apply" methods of this object, this one assumes you either stipulate the system property:
+    * {{{
+    *   cluster.node
+    *   representing which of the configured seed nodes to use e.g. 1 from a configuration of 3 seed nodes
+    *   i.e. the following system property would have to be set:
+    *   -Dcluster.node=1
+    * }}}
+    * or the system properties:
+    * {{{
+    *   cluster.host and cluster.port
+    *   representing a node that is not one of the configured seed nodes e.g.
+    *   -Dcluster.host=prod.home-office.gov.uk
+    *   -Dcluster.port=2665
+    * }}}
+    * @return ActorSystem that is part of a cluster
+    */
+  def apply(): ActorSystem = (sys.props.get("cluster.host"), sys.props.get("cluster.port")) match {
+    case (Some(host), Some(port)) => ClusterActorSystem(host, port.toInt)
+    case _ => ClusterActorSystem(sys.props("cluster.node").toInt)
+  }
+
+  /**
     * Create/Get an Actor System as a seed node of a cluster.
     * @param node Int Representing the node number of the seed nodes e.g. node 2 of 3 seed nodes.
     *             Client code will probably want this to be given as an environment variable e.g.
-    *             -Dcluster.node=1, captured in code as sys.props("cluster.node").toInt, and indeed, this is the default.
+    *             -Dcluster.node=1, captured in code as sys.props("cluster.node").toInt
     *             NOTE that we go by node numbers starting from 1 i.e. non-technical index based and so not starting from 0 index.
     * @return ActorSystem that is part of a cluster
     */
-  def apply(node: Int = sys.props("cluster.node").toInt): ActorSystem = clusterActorSystem.node(node)
+  def apply(node: Int): ActorSystem = clusterActorSystem.node(node)
 
   /**
     * Create/Get an Actor System to dynamically add to cluster seed nodes.
@@ -121,6 +144,8 @@ object ClusterActorSystem {
   * Client code should use the ClusterActorSystem object.
   * However, if specific configuration is required i.e. the default use of ConfigFactory is for some reason not flexible enough,
   * client code could extend this class to provide a configuration programmatically.
+  * One reason for using this class instead of the ClusterActorSystem would be to have multiple clusters to categorise groups of actors e.g.
+  * a specific config with its own cluster name for one set of actors to run on say 3 nodes, and a second set with a config and cluster name to again run on the same 3 nodes.
   * @param config Config to be used that must include seed-nodes as illustrated in the above object's Scaladoc.
   */
 protected class ClusterActorSystem(config: Config) extends ConfigFactorySupport with Logging {
