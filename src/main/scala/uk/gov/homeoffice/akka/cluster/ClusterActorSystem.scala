@@ -19,6 +19,12 @@ import uk.gov.homeoffice.configuration.ConfigFactorySupport
   *   public static Config load()
   * }}}
   *
+  * For a module to be clustered, seed-nodes have to be configured, and one of the entries in seed-nodes will be the module that wishes to be part of the cluster.
+  * Any number of nodes in a cluster is stipulated in seed-nodes of your configuration such as application.conf.
+  * When a module is run on a node, it is represented as one entry in seed-nodes, and we have to state which node in seed-nodes the module is.
+  * E.g. if the module is to be run on node 1, represented by the first entry in seed-nodes, then we must state that this is indeed node 1.
+  * This can be done by providing the JVM property cluster.node=1
+  *
   * The config just has to provide seed nodes of the following format:
   * {{{
   *   akka {
@@ -69,6 +75,22 @@ import uk.gov.homeoffice.configuration.ConfigFactorySupport
   *   akka {
   *     cluster {
   *       name = "yourClusterActorSystemName"
+  * }}}
+  *
+  * As an example, to run locally 3 instances of a module in 3 consoles (so there must be 3 corresponding entries in seed-nodes):
+  * {{{
+  *   sbt '; set javaOptions += "-Dcluster.node=1"; run'
+  *   CLUSTER_SEED_NODE_PORT_2=2662 sbt '; set javaOptions += "-Dcluster.node=2"; run'
+  *   CLUSTER_SEED_NODE_PORT_3=2663 sbt '; set javaOptions += "-Dcluster.node=3"; run'
+  * }}}
+  *
+  * This example shows how we use environment variables to set specific ports for the second and third nodes.
+  *
+  * Or running the assembled JAR:
+  * {{{
+  *   java -Dcluster.node=1 -jar <jar name>.jar
+  *   CLUSTER_SEED_NODE_PORT_2=2662 java -Dcluster.node=2 -jar <jar name>.jar
+  *   CLUSTER_SEED_NODE_PORT_3=2663 java -Dcluster.node=3 -jar <jar name>.jar
   * }}}
   */
 object ClusterActorSystem {
