@@ -101,8 +101,7 @@ object ClusterActorSystem {
   private val clusterActorSystem = new ClusterActorSystem(ConfigFactory.load)
 
   /**
-    * Create/Get an Actor System as a seed node of a cluster OR as a "dynamic" node (a non seed node).
-    * If there is no cluster configuration, then fallback to a standard Actor System - CHECK THAT THIS IS REALLY WHAT YOU WANT!!!
+    * Create/Get an Actor System as a seed node of a cluster OR as a "dynamic" node (a non seed node) - where the fallback is assuming this is node 1.
     * Unlike the other "apply" methods of this object, this one assumes you either stipulate the system property:
     * {{{
     *   cluster.node
@@ -168,8 +167,7 @@ protected class ClusterActorSystem(config: Config) extends ConfigFactorySupport 
   }
 
   /**
-    * Create/Get an Actor System as a seed node of a cluster OR as a "dynamic" node (a non seed node).
-    * If there is no cluster configuration, then fallback to a standard Actor System - CHECK THAT THIS IS REALLY WHAT YOU WANT!!!
+    * Create/Get an Actor System as a seed node of a cluster OR as a "dynamic" node (a non seed node) - where the fallback is assuming this is node 1.
     * Unlike the other "apply" methods of this object, this one assumes you either stipulate the system property:
     * {{{
     *   cluster.node
@@ -189,17 +187,17 @@ protected class ClusterActorSystem(config: Config) extends ConfigFactorySupport 
   def node: ActorSystem = {
     def seedNode: Option[ActorSystem] = sys.props.get("cluster.node") map { n => node(n.toInt) }
 
-    def hostAndPort: Option[ActorSystem] = for {
+    def dynamicNode: Option[ActorSystem] = for {
       host <- sys.props.get("cluster.host")
       port <- sys.props.get("cluster.port")
     } yield node(host, port.toInt)
 
-    def standard: ActorSystem = {
-      warn(s"Booting standard actor system within cluster '$clusterName' - Is this what you really wanted, or are you missing the appropriate cluster configuration?")
-      ActorSystem(s"$clusterName-not-clustered", config.withFallback(ConfigFactory.parseString(s"""akka.cluster.seed-nodes = []""")))
+    def node1: ActorSystem = {
+      warn(s"""Booting Cluster actor system as hardcoded node 1 in cluster "$clusterName" because of incomplete cluster configuration - Is this what you really wanted, or are you missing the appropriate cluster system properties "cluster.node" or "cluster.host, cluster.port"?""")
+      seedNodes(1).actorSystem
     }
 
-    seedNode orElse hostAndPort getOrElse standard
+    seedNode orElse dynamicNode getOrElse node1
   }
 
   /**
@@ -221,7 +219,7 @@ protected class ClusterActorSystem(config: Config) extends ConfigFactorySupport 
     * @return ActorSystem that is part of a cluster
     */
   def node(host: String, port: Int): ActorSystem = {
-    info(s"Booting cluster actor system for $host:$port dynamically in cluster '$clusterName'")
+    info(s"""Booting Cluster actor system $host:$port dynamically in cluster "$clusterName"""")
     ActorSystem(clusterName, clusterConfig(host, port, clusterSeedNodes))
   }
 
@@ -275,7 +273,7 @@ protected class ClusterActorSystem(config: Config) extends ConfigFactorySupport 
 
   case class ClusterNode(node: Int, host: String, port: Int, c: Config) {
     lazy val actorSystem = {
-      info(s"Booting Cluster actor system node $node on $host:$port")
+      info(s"""Booting Cluster actor system node $node on $host:$port in cluster "$clusterName"""")
       ActorSystem(clusterName, c)
     }
   }
