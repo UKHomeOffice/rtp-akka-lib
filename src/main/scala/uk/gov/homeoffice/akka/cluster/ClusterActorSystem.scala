@@ -102,6 +102,7 @@ object ClusterActorSystem {
 
   /**
     * Create/Get an Actor System as a seed node of a cluster OR as a "dynamic" node (a non seed node).
+    * If there is no cluster configuration, then fallback to a standard Actor System - CHECK THAT THIS IS REALLY WHAT YOU WANT!!!
     * Unlike the other "apply" methods of this object, this one assumes you either stipulate the system property:
     * {{{
     *   cluster.node
@@ -118,10 +119,7 @@ object ClusterActorSystem {
     * }}}
     * @return ActorSystem that is part of a cluster
     */
-  def apply(): ActorSystem = (sys.props.get("cluster.host"), sys.props.get("cluster.port")) match {
-    case (Some(host), Some(port)) => ClusterActorSystem(host, port.toInt)
-    case _ => ClusterActorSystem(sys.props("cluster.node").toInt)
-  }
+  def apply(): ActorSystem = clusterActorSystem.node
 
   /**
     * Create/Get an Actor System as a seed node of a cluster.
@@ -170,14 +168,49 @@ protected class ClusterActorSystem(config: Config) extends ConfigFactorySupport 
   }
 
   /**
+    * Create/Get an Actor System as a seed node of a cluster OR as a "dynamic" node (a non seed node).
+    * If there is no cluster configuration, then fallback to a standard Actor System - CHECK THAT THIS IS REALLY WHAT YOU WANT!!!
+    * Unlike the other "apply" methods of this object, this one assumes you either stipulate the system property:
+    * {{{
+    *   cluster.node
+    *   representing which of the configured seed nodes to use e.g. 1 from a configuration of 3 seed nodes
+    *   i.e. the following system property would have to be set:
+    *   -Dcluster.node=1
+    * }}}
+    * or the system properties:
+    * {{{
+    *   cluster.host and cluster.port
+    *   representing a node that is not one of the configured seed nodes e.g.
+    *   -Dcluster.host=prod.home-office.gov.uk
+    *   -Dcluster.port=2665
+    * }}}
+    * @return ActorSystem that is part of a cluster
+    */
+  def node: ActorSystem = {
+    def seedNode: Option[ActorSystem] = sys.props.get("cluster.node") map { n => node(n.toInt) }
+
+    def hostAndPort: Option[ActorSystem] = for {
+      host <- sys.props.get("cluster.host")
+      port <- sys.props.get("cluster.port")
+    } yield node(host, port.toInt)
+
+    def standard: ActorSystem = {
+      warn(s"Booting standard actor system within cluster '$clusterName' - Is this what you really wanted, or are you missing the appropriate cluster configuration?")
+      ActorSystem(clusterName, config)
+    }
+
+    seedNode orElse hostAndPort getOrElse standard
+  }
+
+  /**
     * Create/Get an Actor System as a seed node of a cluster.
     * @param node Int Representing the node number of the seed nodes e.g. node 2 of 3 seed nodes.
     *             Client code will probably want this to be given as an environment variable e.g.
-    *             -Dcluster.node=1, captured in code as sys.props("cluster.node").toInt, and indeed, this is the default.
+    *             -Dcluster.node=1, captured in code as sys.props("cluster.node").toInt
     *             NOTE that we go by node numbers starting from 1 i.e. non-technical index based and so not starting from 0 index.
     * @return ActorSystem that is part of a cluster
     */
-  def node(node: Int = sys.props("cluster.node").toInt): ActorSystem = seedNodes(node - 1).actorSystem
+  def node(node: Int): ActorSystem = seedNodes(node - 1).actorSystem
 
   /**
     * Create/Get an Actor System to dynamically add to cluster seed nodes.
@@ -188,12 +221,8 @@ protected class ClusterActorSystem(config: Config) extends ConfigFactorySupport 
     * @return ActorSystem that is part of a cluster
     */
   def node(host: String, port: Int): ActorSystem = {
-    def createClusterConfig: Config = {
-      info(s"Configuring dynamically $host:$port in cluster '$clusterName'")
-      clusterConfig(host, port, clusterSeedNodes)
-    }
-
-    ActorSystem(clusterName, createClusterConfig)
+    info(s"Booting cluster actor system for $host:$port dynamically in cluster '$clusterName'")
+    ActorSystem(clusterName, clusterConfig(host, port, clusterSeedNodes))
   }
 
   def clusterSeedNodes: Seq[String] = Try {
