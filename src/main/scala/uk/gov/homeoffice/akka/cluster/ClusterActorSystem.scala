@@ -8,7 +8,16 @@ import grizzled.slf4j.Logging
 import uk.gov.homeoffice.configuration.ConfigFactorySupport
 
 /**
-  * Create an Actor System that can be clustered by enhancing an implicit application Config i.e. a config that is in scope of this object, which by default will come from ConfigFactory.load
+  * Create an Actor System that can be clustered by enhancing an application Config,
+  * which is expected to be a default configuration as per the Javadoc from [[https://typesafehub.github.io/config/latest/api/com/typesafe/config/ConfigFactory.html#load-com.typesafe.config.Config- ConfigFactory.load(Config)]]:
+  * {{{
+  *   * Loads a default configuration, equivalent to com.typesafe.config.ConfigFactory.load(com.typesafe.config.Config) in most cases.
+  *   * This configuration should be used by libraries and frameworks unless an application provides a different one.
+  *   * This method may return a cached singleton so will not see changes to system properties or config files.
+  *   * (Use com.typesafe.config.ConfigFactory.invalidateCaches() to force it to reload.)
+  *   * @return configuration for an application
+  *   public static Config load()
+  * }}}
   *
   * For a module to be clustered, seed-nodes have to be configured, and one of the entries in seed-nodes will be the module that wishes to be part of the cluster.
   * Any number of nodes in a cluster is stipulated in seed-nodes of your configuration such as application.conf.
@@ -89,9 +98,7 @@ import uk.gov.homeoffice.configuration.ConfigFactorySupport
   * }}}
   */
 object ClusterActorSystem {
-  implicit private val defaultConfig = ConfigFactory.load
-
-  private val clusterActorSystem = new ClusterActorSystem
+  private val clusterActorSystem = new ClusterActorSystem(ConfigFactory.load)
 
   /**
     * Create/Get an Actor System as a seed node of a cluster OR as a "dynamic" node (a non seed node) - where the fallback is assuming this is node 1.
@@ -142,7 +149,7 @@ object ClusterActorSystem {
   * a specific config with its own cluster name for one set of actors to run on say 3 nodes, and a second set with a config and cluster name to again run on the same 3 nodes.
   * @param config Config to be used that must include seed-nodes as illustrated in the above object's Scaladoc.
   */
-protected class ClusterActorSystem(implicit config: Config) extends ConfigFactorySupport with Logging {
+protected class ClusterActorSystem(config: Config) extends ConfigFactorySupport with Logging {
   val clusterName = config.text("akka.cluster.name", "cluster-actor-system")
 
   val seedNodes: Seq[ClusterNode] = {
@@ -186,8 +193,15 @@ protected class ClusterActorSystem(implicit config: Config) extends ConfigFactor
     } yield node(host, port.toInt)
 
     def node1: ActorSystem = {
+      val nodes: Seq[String] = clusterSeedNodes
+      val node = nodes.head
+      val HostPort = """.*?@(.*?):(\d*).*""".r
+      val HostPort(host, port) = node
+
       warn(s"""Incomplete cluster configuration, so will fallback to booting cluster node 1 - Is this what you really want, or are you missing the appropriate cluster system properties "cluster.node" or "cluster.host, cluster.port"?""")
-      node(1)
+      info(s"""Booting hardcoded Cluster actor system node 1 on $host:$port in cluster "$clusterName"""")
+
+      ActorSystem(clusterName, clusterConfig(host, port.toInt, nodes).withFallback(ConfigFactory.parseString(s"""akka.cluster.min-nr-of-members = 1""")))
     }
 
     seedNode orElse dynamicNode getOrElse node1

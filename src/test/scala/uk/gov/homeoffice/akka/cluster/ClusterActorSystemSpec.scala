@@ -41,9 +41,7 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
       freeport() { port1 =>
         freeport() { port2 =>
           freeport() { port3 =>
-            implicit val config = ConfigFactory.parseString(s"""
-              blah = "blah"
-
+            val config = ConfigFactory.parseString(s"""
               akka {
                 stdout-loglevel = off
                 loglevel = off
@@ -65,7 +63,7 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
                 }
               }""")
 
-            clusterActorSystem = new ClusterActorSystem
+            clusterActorSystem = new ClusterActorSystem(config)
 
             val clusterActorSystems = (1 to numberOfNodes) map { node =>
               val actorSystem: ActorSystem = clusterActorSystem.node(node)
