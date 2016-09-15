@@ -232,7 +232,6 @@ protected class ClusterActorSystem(config: Config) extends ConfigFactorySupport 
         ]
 
         min-nr-of-members = 2
-        auto-down-unreachable-after = 30s
 
         metrics {
           enabled = off
