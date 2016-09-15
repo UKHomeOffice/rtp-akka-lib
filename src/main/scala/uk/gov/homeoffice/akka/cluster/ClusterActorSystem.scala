@@ -193,8 +193,8 @@ protected class ClusterActorSystem(config: Config) extends ConfigFactorySupport 
     } yield node(host, port.toInt)
 
     def node1: ActorSystem = {
-      warn(s"""Booting Cluster actor system as hardcoded node 1 in cluster "$clusterName" because of incomplete cluster configuration - Is this what you really wanted, or are you missing the appropriate cluster system properties "cluster.node" or "cluster.host, cluster.port"?""")
-      seedNodes(1).actorSystem
+      warn(s"""Incomplete cluster configuration, so will fallback to booting cluster node 1 - Is this what you really want, or are you missing the appropriate cluster system properties "cluster.node" or "cluster.host, cluster.port"?""")
+      node(1)
     }
 
     seedNode orElse dynamicNode getOrElse node1
