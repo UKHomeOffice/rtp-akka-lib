@@ -196,7 +196,7 @@ protected class ClusterActorSystem(config: Config) extends ConfigFactorySupport 
 
     def standard: ActorSystem = {
       warn(s"Booting standard actor system within cluster '$clusterName' - Is this what you really wanted, or are you missing the appropriate cluster configuration?")
-      ActorSystem(clusterName, config)
+      ActorSystem(s"$clusterName-not-clustered", config.withFallback(ConfigFactory.parseString(s"""akka.cluster.seed-nodes = []""")))
     }
 
     seedNode orElse hostAndPort getOrElse standard
