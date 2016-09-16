@@ -201,7 +201,7 @@ protected class ClusterActorSystem(config: Config) extends ConfigFactorySupport 
       warn(s"""Incomplete cluster configuration, so will fallback to booting cluster node 1 - Is this what you really want, or are you missing the appropriate cluster system properties "cluster.node" or "cluster.host, cluster.port"?""")
       info(s"""Booting hardcoded Cluster actor system node 1 on $host:$port in cluster "$clusterName"""")
 
-      ActorSystem(clusterName, clusterConfig(host, port.toInt, nodes).withFallback(ConfigFactory.parseString(s"""akka.cluster.min-nr-of-members = 1""")))
+      ActorSystem(clusterName, ConfigFactory.parseString(s"""akka.cluster.min-nr-of-members = 1""") withFallback clusterConfig(host, port.toInt, nodes))
     }
 
     seedNode orElse dynamicNode getOrElse node1
@@ -242,41 +242,53 @@ protected class ClusterActorSystem(config: Config) extends ConfigFactorySupport 
     config getStringList "akka.cluster.seed-nodes" map { s => s""""$s"""" }
   }
 
-  def clusterConfig(host: String, port: Int, seedNodes: Seq[String]): Config = ConfigFactory.parseString(s"""
-    akka {
-      actor {
-        provider = "akka.cluster.ClusterActorRefProvider"
-      }
+  def clusterConfig(host: String, port: Int, seedNodes: Seq[String]): Config = {
+    val clusterConfig = ConfigFactory.parseString(s"""
+      akka {
+        actor {
+          provider = "akka.cluster.ClusterActorRefProvider"
+        }
 
-      remote {
-        enabled-transports = ["akka.remote.netty.tcp"]
-        log-remote-lifecycle-events = off
+        remote {
+          enabled-transports = ["akka.remote.netty.tcp"]
 
-        netty {
-          tcp {
-            hostname = "$host"
-            port = $port
+          netty {
+            tcp {
+              hostname = "$host"
+              port = $port
+            }
           }
         }
-      }
 
-      cluster {
-        seed-nodes = [
-          ${seedNodes mkString ", "}
-        ]
-
-        min-nr-of-members = 2
-
-        metrics {
-          enabled = off
+        cluster {
+          seed-nodes = [
+            ${seedNodes mkString ", "}
+          ]
         }
-      }
 
-      extensions = [
-        "akka.cluster.pubsub.DistributedPubSub",
-        "akka.cluster.metrics.ClusterMetricsExtension"
-      ]
-    }""").withFallback(config)
+        extensions = [
+          "akka.cluster.pubsub.DistributedPubSub",
+          "akka.cluster.metrics.ClusterMetricsExtension"
+        ]
+      }""")
+
+    val clusterOverridableConfig = ConfigFactory.parseString(s"""
+      akka {
+        remote {
+          log-remote-lifecycle-events = off
+        }
+
+        cluster {
+          min-nr-of-members = 2
+
+          metrics {
+            enabled = off
+          }
+        }
+      }""")
+
+    clusterConfig withFallback config withFallback clusterOverridableConfig
+  }
 
   case class ClusterNode(node: Int, host: String, port: Int, c: Config) {
     lazy val actorSystem = {
