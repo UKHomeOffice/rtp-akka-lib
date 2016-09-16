@@ -198,8 +198,8 @@ protected class ClusterActorSystem(config: Config) extends ConfigFactorySupport 
       val HostPort = """.*?@(.*?):(\d*).*""".r
       val HostPort(host, port) = node
 
-      warn(s"""Incomplete cluster configuration, so will fallback to booting cluster node 1 - Is this what you really want, or are you missing the appropriate cluster system properties "cluster.node" or "cluster.host, cluster.port"?""")
-      info(s"""Booting hardcoded Cluster actor system node 1 on $host:$port in cluster "$clusterName"""")
+      warn(s"""Incomplete cluster configuration.\nWill fallback to booting cluster node 1 standalone (not requiring any other nodes).\nIs this what you really want, or are you missing the appropriate cluster system properties "cluster.node" or "cluster.host, cluster.port"?""")
+      info(s"""Booting standalone Cluster actor system node 1 on $host:$port in cluster "$clusterName"""")
 
       ActorSystem(clusterName, ConfigFactory.parseString(s"""akka.cluster.min-nr-of-members = 1""") withFallback clusterConfig(host, port.toInt, nodes))
     }
