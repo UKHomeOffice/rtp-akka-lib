@@ -5,20 +5,24 @@ import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
-import akka.actor.{Actor, ActorSystem, Props}
+import akka.actor.{Actor, ActorPath, ActorSystem, PoisonPill, Props}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
+import akka.cluster.pubsub.DistributedPubSub
+import akka.cluster.pubsub.DistributedPubSubMediator.{Publish, Subscribe}
+import akka.cluster.singleton.{ClusterSingletonManager, ClusterSingletonManagerSettings}
 import com.typesafe.config.ConfigFactory
 import org.specs2.execute.{AsResult, Result}
 import org.specs2.mutable.Specification
-import uk.gov.homeoffice.akka.ActorSystemSpecification
+import uk.gov.homeoffice.akka.{ActorExpectations, ActorSystemSpecification}
+import uk.gov.homeoffice.akka.cluster.PingActor.{Ping, Pong}
 import uk.gov.homeoffice.network.Network
 import uk.gov.homeoffice.specs2._
 
 class ClusterActorSystemSpec extends Specification with ActorSystemSpecification with Network {
   sequential // Simply because each example can slow each down when running in parallel that includes the likelyhood of timeouts.
 
-  trait Context extends ActorSystemContext {
+  trait Context extends ActorSystemContext with ActorExpectations {
     var clusterActorSystem: ClusterActorSystem = _
 
     override def around[R: AsResult](r: => R): Result = {
@@ -45,6 +49,9 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
               akka {
                 stdout-loglevel = off
                 loglevel = off
+
+                min-nr-of-members = 2
+                auto-down-unreachable-after = 3s
 
                 cluster {
                   name = "${UUID.randomUUID()}-test-cluster-actor-system"
@@ -104,7 +111,7 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
     "not start up with only 1 node" in new Context {
       val (cluster, Seq(_)) = clusterActorSystems(1)
 
-      expectMsgType[MemberJoined](30 seconds)
+      expectMsgType[MemberJoined](10 seconds)
       expectNoMsg(10 seconds)
     }
 
@@ -112,11 +119,11 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
       val (cluster, Seq(_, _)) = clusterActorSystems(2)
 
       twice {
-        expectMsgType[MemberJoined](30 seconds)
+        expectMsgType[MemberJoined](10 seconds)
       }
 
       twice {
-        expectMsgType[MemberUp](30 seconds)
+        expectMsgType[MemberUp](10 seconds)
       }
     }
 
@@ -124,18 +131,18 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
       val (cluster, Seq(actorSystem, _)) = clusterActorSystems(2)
 
       twice {
-        expectMsgType[MemberJoined](30 seconds)
+        expectMsgType[MemberJoined](10 seconds)
       }
 
       twice {
-        expectMsgType[MemberUp](30 seconds)
+        expectMsgType[MemberUp](10 seconds)
       }
 
       val extraActorSystem = freeport() { port =>
         clusterActorSystem.node(host = "127.0.0.1", port = port)
       }
 
-      expectMsgType[MemberJoined](30 seconds)
+      expectMsgType[MemberJoined](10 seconds)
     }
 
     "not duplicate a node - if a node is generated (asked for) more than once, a 'cached' version is given" in new Context {
@@ -143,5 +150,154 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
 
       clusterActorSystem.node(1) mustEqual actorSystem
     }
+  }
+
+  "Cluster singleton" should {
+    "not have a singleton actor running when only 1 node is running" in new Context {
+      val (cluster, clusteredActorSystems @ Seq(clusteredActorSystem1)) = clusterActorSystems(1)
+
+      clusteredActorSystems.zipWithIndex foreach { case (clusteredActorSystem, index) =>
+        clusteredActorSystem.actorOf(PingActor.props(clusteredActorSystem, index + 1), "ping-actor")
+      }
+
+      expectMsgType[MemberJoined](10 seconds)
+
+      // With only 1 node running, and configured to need at least 2 to form a cluster.
+      expectNoMsg(10 seconds)
+
+      info(s"Pinging.....")
+      clusteredActorSystem1.actorSelection(s"akka://${clusteredActorSystem1.name}/user/ping-actor/singleton") ! Ping
+      expectNoMsg(10 seconds)
+    }
+
+    "run singleton actor for 2 running nodes" in new Context {
+      val (cluster, clusteredActorSystems @ Seq(clusteredActorSystem1, _)) = clusterActorSystems(2)
+
+      clusteredActorSystems.zipWithIndex foreach { case (clusteredActorSystem, index) =>
+        clusteredActorSystem.actorOf(PingActor.props(clusteredActorSystem, index + 1), "ping-actor")
+      }
+
+      // With 2 nodes running, a singleton actor can be pinged.
+      eventually(retries = 10, sleep = 3 seconds) {
+        info(s"Pinging.....")
+        clusteredActorSystem1.actorSelection(s"akka://${clusteredActorSystem1.name}/user/ping-actor/singleton") ! Ping
+        expectMsgType[Pong]
+      }
+    }
+
+    "run singleton actor for 2 running nodes - using distributed pub/sub" in new Context {
+      case object ActorRunning
+
+      val (cluster, clusteredActorSystems @ Seq(clusteredActorSystem1, _)) = clusterActorSystems(2)
+
+      clusteredActorSystems.zipWithIndex foreach { case (clusteredActorSystem, index) =>
+        clusteredActorSystem.actorOf(PingActor.props(clusteredActorSystem, index + 1), "ping-actor")
+      }
+
+      // With 2 nodes running, a singleton actor can be pinged by publishing to a known "topic".
+      eventually(retries = 10, sleep = 3 seconds) {
+        clusteredActorSystem1 actorOf Props {
+          new Actor {
+            override def preStart(): Unit = {
+              val mediator = DistributedPubSub(context.system).mediator
+              mediator ! Publish("content", Ping)
+            }
+
+            override def receive: Receive = {
+              case Pong(actorPath, id) => testActor ! ActorRunning
+            }
+          }
+        }
+
+        expectMsgType[ActorRunning.type](10 seconds)
+      }
+    }
+
+    "run singleton actor for 2 running nodes, but then fail upon bringing down the leading node" in new Context {
+      val (cluster, clusteredActorSystems @ Seq(clusteredActorSystem1, clusteredActorSystem2)) = clusterActorSystems(2)
+
+      clusteredActorSystems.zipWithIndex foreach { case (clusteredActorSystem, index) =>
+        clusteredActorSystem.actorOf(PingActor.props(clusteredActorSystem, index + 1), "ping-actor")
+      }
+
+      // With 2 nodes running, a singleton actor can be pinged.
+      eventually(retries = 10, sleep = 3 seconds) {
+        info(s"Pinging.....")
+        clusteredActorSystem1.actorSelection(s"akka://${clusteredActorSystem1.name}/user/ping-actor/singleton") ! Ping
+        expectMsgType[Pong]
+      }
+
+      // 1 node leaves the cluster.
+      cluster.down(cluster.selfAddress)
+
+      eventuallyExpectMsg[MemberRemoved] {
+        case MemberRemoved(_, _) => ok
+      }
+
+      // With only 1 node running, and configured to need at least 2 to form a cluster.
+      info(s"Pinging.....")
+      clusteredActorSystem2.actorSelection(s"akka://${clusteredActorSystem2.name}/user/ping-actor/singleton") ! Ping
+
+      expectMsgPF(30 seconds) {
+        case Pong(_, _) => ko
+        case _ => ok
+      }
+    }
+
+    "run singleton actor for 3 running nodes, even after bringing down the leading node" in new Context {
+      val (cluster, clusteredActorSystems @ Seq(clusteredActorSystem1, clusteredActorSystem2, clusteredActorSystem3)) = clusterActorSystems(3)
+
+      clusteredActorSystems.zipWithIndex foreach { case (clusteredActorSystem, index) =>
+        clusteredActorSystem.actorOf(PingActor.props(clusteredActorSystem, index + 1), "ping-actor")
+      }
+
+      // With 3 nodes running, a singleton actor can be pinged.
+      eventually(retries = 10, sleep = 3 seconds) {
+        info(s"Pinging.....")
+        clusteredActorSystem1.actorSelection(s"akka://${clusteredActorSystem1.name}/user/ping-actor/singleton") ! Ping
+        expectMsgType[Pong]
+      }
+
+      // 1 node leaves the cluster.
+      cluster.down(cluster.selfAddress)
+
+      eventuallyExpectMsg[MemberRemoved] {
+        case MemberRemoved(_, _) => ok
+      }
+
+      // With 2 nodes running, a singleton actor can be pinged.
+      eventually(retries = 10, sleep = 3 seconds) {
+        info(s"Pinging.....")
+        clusteredActorSystem2.actorSelection(s"akka://${clusteredActorSystem2.name}/user/ping-actor/singleton") ! Ping
+        expectMsgType[Pong]
+      }
+    }
+  }
+}
+
+object PingActor {
+  case object Ping
+
+  case class Pong(a: ActorPath, id: Int)
+
+  def props(system: ActorSystem, id: Int) = ClusterSingletonManager.props(
+    singletonProps = Props(new PingActor(id)),
+    terminationMessage = PoisonPill,
+    settings = ClusterSingletonManagerSettings(system)
+  )
+}
+
+class PingActor(id: Int) extends Actor {
+  import PingActor._
+
+  val mediator = DistributedPubSub(context.system).mediator
+
+  // Subscribe to the topic named "content"
+  mediator ! Subscribe("content", self)
+
+  override def receive: Receive = {
+    case Ping =>
+      println(s"===> Ponging from actor with ID $id")
+      sender() ! Pong(self.path, id)
   }
 }
