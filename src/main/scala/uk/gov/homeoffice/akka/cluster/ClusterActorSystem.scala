@@ -5,6 +5,7 @@ import scala.util.Try
 import akka.actor.ActorSystem
 import com.typesafe.config.{Config, ConfigFactory}
 import grizzled.slf4j.Logging
+import uk.gov.homeoffice.SystemOps
 import uk.gov.homeoffice.configuration.ConfigFactorySupport
 
 /**
@@ -149,7 +150,7 @@ object ClusterActorSystem {
   * a specific config with its own cluster name for one set of actors to run on say 3 nodes, and a second set with a config and cluster name to again run on the same 3 nodes.
   * @param config Config to be used that must include seed-nodes as illustrated in the above object's Scaladoc.
   */
-protected class ClusterActorSystem(config: Config) extends ConfigFactorySupport with Logging {
+protected class ClusterActorSystem(config: Config) extends ConfigFactorySupport with SystemOps with Logging {
   val clusterName = config.text("akka.cluster.name", "cluster-actor-system")
 
   val seedNodes: Seq[ClusterNode] = {
@@ -198,7 +199,7 @@ protected class ClusterActorSystem(config: Config) extends ConfigFactorySupport 
       val HostPort = """.*?@(.*?):(\d*).*""".r
       val HostPort(host, port) = node
 
-      warn(s"""Incomplete cluster configuration.\nWill fallback to booting cluster node 1 standalone (not requiring any other nodes).\nIs this what you really want, or are you missing the appropriate cluster system properties "cluster.node" or "cluster.host, cluster.port"?""")
+      warn(s"""Incomplete cluster configuration.${newLine}Will fallback to booting cluster node 1 standalone (not requiring any other nodes).${newLine}Is this what you really want, or are you missing the appropriate cluster system properties "cluster.node" or "cluster.host, cluster.port"?""")
       info(s"""Booting standalone Cluster actor system node 1 on $host:$port in cluster "$clusterName"""")
 
       ActorSystem(clusterName, ConfigFactory.parseString(s"""akka.cluster.min-nr-of-members = 1""") withFallback clusterConfig(host, port.toInt, nodes))
