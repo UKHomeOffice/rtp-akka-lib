@@ -243,3 +243,16 @@ akka {
 
 Each node that starts up on the same box would need a different port e.g. 2551, 2552 etc.
 In production, the nodes would be on different boxes and so can all have the same ports and said port could then also be declared for akka.actor.remote.netty.tcp.port.
+
+There is an example app showing a makeshift cluster of 3 nodes:
+```scala
+object ClusterActorSystemExampleApp extends App with Network {
+  withConfig {
+    // Imagine we are starting up 3 nodes on 3 separate boxes (here we will have simply utilise 3 separately configured ports).
+    val actorSystem1 = ClusterActorSystem(1)
+    val actorSystem2 = ClusterActorSystem(2)
+    val actorSystem3 = ClusterActorSystem(3)
+    ...
+  }
+}    
+```
