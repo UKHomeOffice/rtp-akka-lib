@@ -177,8 +177,10 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
         clusteredActorSystem.actorOf(PingActor.props(clusteredActorSystem, index + 1), "ping-actor")
       }
 
+      expectMsgType[MemberJoined](10 seconds)
+
       // With 2 nodes running, a singleton actor can be pinged.
-      eventually(retries = 10, sleep = 10 seconds) {
+      eventually(retries = 10, sleep = 1 second) {
         info(s"Pinging.....")
         clusteredActorSystem1.actorSelection(s"akka://${clusteredActorSystem1.name}/user/ping-actor/singleton") ! Ping
         expectMsgType[Pong]
@@ -220,8 +222,10 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
         clusteredActorSystem.actorOf(PingActor.props(clusteredActorSystem, index + 1), "ping-actor")
       }
 
+      expectMsgType[MemberJoined](10 seconds)
+
       // With 2 nodes running, a singleton actor can be pinged.
-      eventually(retries = 10, sleep = 10 seconds) {
+      eventually(retries = 10, sleep = 2 seconds) {
         info(s"Pinging.....")
         clusteredActorSystem1.actorSelection(s"akka://${clusteredActorSystem1.name}/user/ping-actor/singleton") ! Ping
         expectMsgType[Pong]
@@ -251,8 +255,10 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
         clusteredActorSystem.actorOf(PingActor.props(clusteredActorSystem, index + 1), "ping-actor")
       }
 
+      expectMsgType[MemberJoined](10 seconds)
+
       // With 3 nodes running, a singleton actor can be pinged.
-      eventually(retries = 10, sleep = 10 seconds) {
+      eventually(retries = 10, sleep = 2 seconds) {
         info(s"Pinging.....")
         clusteredActorSystem1.actorSelection(s"akka://${clusteredActorSystem1.name}/user/ping-actor/singleton") ! Ping
         expectMsgType[Pong]
@@ -266,7 +272,7 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
       }
 
       // With 2 nodes running, a singleton actor can be pinged.
-      eventually(retries = 10, sleep = 10 seconds) {
+      eventually(retries = 10, sleep = 2 seconds) {
         info(s"Pinging.....")
         clusteredActorSystem2.actorSelection(s"akka://${clusteredActorSystem2.name}/user/ping-actor/singleton") ! Ping
         expectMsgType[Pong]
@@ -297,7 +303,6 @@ class PingActor(id: Int) extends Actor {
 
   override def receive: Receive = {
     case Ping =>
-      println(s"===> Ponging from actor with ID $id")
       sender() ! Pong(self.path, id)
   }
 }
