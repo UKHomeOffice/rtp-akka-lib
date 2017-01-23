@@ -14,8 +14,8 @@ import akka.cluster.singleton.{ClusterSingletonManager, ClusterSingletonManagerS
 import com.typesafe.config.ConfigFactory
 import org.specs2.execute.{AsResult, Result}
 import org.specs2.mutable.Specification
-import uk.gov.homeoffice.akka.{ActorExpectations, ActorSystemSpecification}
 import uk.gov.homeoffice.akka.cluster.PingActor.{Ping, Pong}
+import uk.gov.homeoffice.akka.{ActorExpectations, ActorSystemSpecification}
 import uk.gov.homeoffice.network.Network
 import uk.gov.homeoffice.specs2._
 
@@ -68,6 +68,11 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
                     port = $port3
                   }]
                 }
+
+                test {
+                  single-expect-default = 30 seconds
+                  default-timeout = 30 seconds
+                }
               }""")
 
             clusterActorSystem = new ClusterActorSystem(config)
@@ -111,7 +116,10 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
     "not start up with only 1 node" in new Context {
       val (cluster, Seq(_)) = clusterActorSystems(1)
 
-      expectMsgType[MemberJoined](10 seconds)
+      eventuallyExpectMsg[MemberJoined] {
+        case MemberJoined(_) => ok
+      }
+
       expectNoMsg(10 seconds)
     }
 
@@ -119,11 +127,15 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
       val (cluster, Seq(_, _)) = clusterActorSystems(2)
 
       twice {
-        expectMsgType[MemberJoined](10 seconds)
+        eventuallyExpectMsg[MemberJoined] {
+          case MemberJoined(_) => ok
+        }
       }
 
       twice {
-        expectMsgType[MemberUp](10 seconds)
+        eventuallyExpectMsg[MemberUp] {
+          case MemberUp(_) => ok
+        }
       }
     }
 
@@ -142,7 +154,9 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
         clusterActorSystem.node(host = "127.0.0.1", port = port)
       }
 
-      expectMsgType[MemberJoined](10 seconds)
+      eventuallyExpectMsg[MemberJoined] {
+        case MemberJoined(_) => ok
+      }
     }
 
     "not duplicate a node - if a node is generated (asked for) more than once, a 'cached' version is given" in new Context {
@@ -160,7 +174,9 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
         clusteredActorSystem.actorOf(PingActor.props(clusteredActorSystem, index + 1), "ping-actor")
       }
 
-      expectMsgType[MemberJoined](10 seconds)
+      eventuallyExpectMsg[MemberJoined] {
+        case MemberJoined(_) => ok
+      }
 
       // With only 1 node running, and configured to need at least 2 to form a cluster.
       expectNoMsg(10 seconds)
@@ -177,7 +193,9 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
         clusteredActorSystem.actorOf(PingActor.props(clusteredActorSystem, index + 1), "ping-actor")
       }
 
-      expectMsgType[MemberJoined](10 seconds)
+      eventuallyExpectMsg[MemberJoined] {
+        case MemberJoined(_) => ok
+      }
 
       // With 2 nodes running, a singleton actor can be pinged.
       eventually(retries = 10, sleep = 1 second) {
@@ -197,7 +215,7 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
       }
 
       // With 2 nodes running, a singleton actor can be pinged by publishing to a known "topic".
-      eventually(retries = 10, sleep = 10 seconds) {
+      eventually(retries = 10, sleep = 2 seconds) {
         clusteredActorSystem1 actorOf Props {
           new Actor {
             override def preStart(): Unit = {
@@ -222,7 +240,9 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
         clusteredActorSystem.actorOf(PingActor.props(clusteredActorSystem, index + 1), "ping-actor")
       }
 
-      expectMsgType[MemberJoined](10 seconds)
+      eventuallyExpectMsg[MemberJoined] {
+        case MemberJoined(_) => ok
+      }
 
       // With 2 nodes running, a singleton actor can be pinged.
       eventually(retries = 10, sleep = 2 seconds) {
@@ -255,7 +275,9 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
         clusteredActorSystem.actorOf(PingActor.props(clusteredActorSystem, index + 1), "ping-actor")
       }
 
-      expectMsgType[MemberJoined](10 seconds)
+      eventuallyExpectMsg[MemberJoined] {
+        case MemberJoined(_) => ok
+      }
 
       // With 3 nodes running, a singleton actor can be pinged.
       eventually(retries = 10, sleep = 2 seconds) {
