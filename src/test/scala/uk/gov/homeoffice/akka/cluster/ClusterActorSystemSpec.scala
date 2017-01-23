@@ -248,7 +248,7 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
       eventually(retries = 10, sleep = 2 seconds) {
         info(s"Pinging.....")
         clusteredActorSystem1.actorSelection(s"akka://${clusteredActorSystem1.name}/user/ping-actor/singleton") ! Ping
-        expectMsgType[Pong]
+        expectMsgType[Pong](30 seconds)
       }
 
       // 1 node leaves the cluster.
@@ -297,7 +297,7 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
       eventually(retries = 10, sleep = 2 seconds) {
         info(s"Pinging.....")
         clusteredActorSystem2.actorSelection(s"akka://${clusteredActorSystem2.name}/user/ping-actor/singleton") ! Ping
-        expectMsgType[Pong]
+        expectMsgType[Pong](30 seconds)
       }
     }
   }
