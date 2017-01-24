@@ -214,9 +214,10 @@ class ClusterActorSystemSpec(implicit env: ExecutionEnv) extends Specification w
         clusteredActorSystem.actorOf(PingActor.props(clusteredActorSystem, index + 1), "ping-actor")
       }
 
-      eventually(retries = 10, sleep = 2 seconds) {
-        val members = cluster.state.members filter { _.status == MemberStatus.Up }
-        members.size mustEqual 2
+      twice {
+        eventuallyExpectMsg[MemberJoined] {
+          case MemberJoined(_) => ok
+        }
       }
 
       // With 2 nodes running, a singleton actor can be pinged.
@@ -233,6 +234,12 @@ class ClusterActorSystemSpec(implicit env: ExecutionEnv) extends Specification w
 
       clusteredActorSystems.zipWithIndex foreach { case (clusteredActorSystem, index) =>
         clusteredActorSystem.actorOf(PingActor.props(clusteredActorSystem, index + 1), "ping-actor")
+      }
+
+      twice {
+        eventuallyExpectMsg[MemberJoined] {
+          case MemberJoined(_) => ok
+        }
       }
 
       // With 2 nodes running, a singleton actor can be pinged by publishing to a known "topic".
@@ -261,9 +268,10 @@ class ClusterActorSystemSpec(implicit env: ExecutionEnv) extends Specification w
         clusteredActorSystem.actorOf(PingActor.props(clusteredActorSystem, index + 1), "ping-actor")
       }
 
-      eventually(retries = 10, sleep = 2 seconds) {
-        val members = cluster.state.members filter { _.status == MemberStatus.Up }
-        members.size mustEqual 2
+      twice {
+        eventuallyExpectMsg[MemberJoined] {
+          case MemberJoined(_) => ok
+        }
       }
 
       // With 2 nodes running, a singleton actor can be pinged.
@@ -295,9 +303,10 @@ class ClusterActorSystemSpec(implicit env: ExecutionEnv) extends Specification w
         clusteredActorSystem.actorOf(PingActor.props(clusteredActorSystem, index + 1), "ping-actor")
       }
 
-      eventually(retries = 10, sleep = 2 seconds) {
-        val members = cluster.state.members filter { _.status == MemberStatus.Up }
-        members.size mustEqual 3
+      times(3) {
+        eventuallyExpectMsg[MemberJoined] {
+          case MemberJoined(_) => ok
+        }
       }
 
       // With 3 nodes running, a singleton actor can be pinged.
