@@ -113,7 +113,13 @@ class ClusterActorSystemSpec(implicit env: ExecutionEnv) extends Specification w
       }
     }
 
-    def ping(system: ActorSystem, actorPath: String): Future[Boolean] = {
+    /**
+      *
+      * @param system ActorSystem
+      * @param actorPath String The path of the actor to "ping"
+      * @return Boolean where true is given upon a successful "ping"
+      */
+    def ping(system: ActorSystem, actorPath: String): Boolean = {
       val ponged = Promise[Boolean]()
 
       val actor = system.actorOf(
@@ -129,7 +135,7 @@ class ClusterActorSystemSpec(implicit env: ExecutionEnv) extends Specification w
 
       actor ! Ping
 
-      ponged.future
+      Await.result(ponged.future, 5 seconds)
     }
   }
 
@@ -214,16 +220,13 @@ class ClusterActorSystemSpec(implicit env: ExecutionEnv) extends Specification w
         clusteredActorSystem.actorOf(PingActor.props(clusteredActorSystem, index + 1), "ping-actor")
       }
 
-      twice {
-        eventuallyExpectMsg[MemberJoined] {
-          case MemberJoined(_) => ok
-        }
+      eventuallyExpectMsg[MemberJoined] {
+        case MemberJoined(_) => ok
       }
 
       // With 2 nodes running, a singleton actor can be pinged.
       eventually(retries = 10, sleep = 10 seconds) {
-        val ponged = Await.result(ping(clusteredActorSystem1, s"/user/ping-actor/singleton"), 5 seconds)
-        ponged must beTrue
+        ping(clusteredActorSystem1, s"/user/ping-actor/singleton") must beTrue
       }
     }
 
@@ -236,10 +239,8 @@ class ClusterActorSystemSpec(implicit env: ExecutionEnv) extends Specification w
         clusteredActorSystem.actorOf(PingActor.props(clusteredActorSystem, index + 1), "ping-actor")
       }
 
-      twice {
-        eventuallyExpectMsg[MemberJoined] {
-          case MemberJoined(_) => ok
-        }
+      eventuallyExpectMsg[MemberJoined] {
+        case MemberJoined(_) => ok
       }
 
       // With 2 nodes running, a singleton actor can be pinged by publishing to a known "topic".
@@ -268,16 +269,13 @@ class ClusterActorSystemSpec(implicit env: ExecutionEnv) extends Specification w
         clusteredActorSystem.actorOf(PingActor.props(clusteredActorSystem, index + 1), "ping-actor")
       }
 
-      twice {
-        eventuallyExpectMsg[MemberJoined] {
-          case MemberJoined(_) => ok
-        }
+      eventuallyExpectMsg[MemberJoined] {
+        case MemberJoined(_) => ok
       }
 
       // With 2 nodes running, a singleton actor can be pinged.
       eventually(retries = 10, sleep = 10 seconds) {
-        val ponged = Await.result(ping(clusteredActorSystem1, s"/user/ping-actor/singleton"), 5 seconds)
-        ponged must beTrue
+        ping(clusteredActorSystem1, s"/user/ping-actor/singleton") must beTrue
       }
 
       // 1 node leaves the cluster.
@@ -303,16 +301,13 @@ class ClusterActorSystemSpec(implicit env: ExecutionEnv) extends Specification w
         clusteredActorSystem.actorOf(PingActor.props(clusteredActorSystem, index + 1), "ping-actor")
       }
 
-      times(3) {
-        eventuallyExpectMsg[MemberJoined] {
-          case MemberJoined(_) => ok
-        }
+      eventuallyExpectMsg[MemberJoined] {
+        case MemberJoined(_) => ok
       }
 
       // With 3 nodes running, a singleton actor can be pinged.
       eventually(retries = 10, sleep = 10 seconds) {
-        val ponged = Await.result(ping(clusteredActorSystem1, s"/user/ping-actor/singleton"), 5 seconds)
-        ponged must beTrue
+        ping(clusteredActorSystem1, s"/user/ping-actor/singleton") must beTrue
       }
 
       // 1 node leaves the cluster.
@@ -324,8 +319,7 @@ class ClusterActorSystemSpec(implicit env: ExecutionEnv) extends Specification w
 
       // Singleton actor can still be pinged
       eventually(retries = 10, sleep = 10 seconds) {
-        val pongedAgain = ping(clusteredActorSystem2, s"/user/ping-actor/singleton")
-        pongedAgain must beEqualTo(true).await
+        ping(clusteredActorSystem2, s"/user/ping-actor/singleton") must beTrue
       }
     }
   }
