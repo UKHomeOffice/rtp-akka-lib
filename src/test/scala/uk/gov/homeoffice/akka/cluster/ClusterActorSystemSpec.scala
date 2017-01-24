@@ -4,14 +4,15 @@ import java.util.UUID
 import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, Future, Promise}
 import akka.actor.{Actor, ActorPath, ActorSystem, PoisonPill, Props}
-import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 import akka.cluster.pubsub.DistributedPubSub
 import akka.cluster.pubsub.DistributedPubSubMediator.{Publish, Subscribe}
 import akka.cluster.singleton.{ClusterSingletonManager, ClusterSingletonManagerSettings}
+import akka.cluster.{Cluster, MemberStatus}
 import com.typesafe.config.ConfigFactory
+import org.specs2.concurrent.ExecutionEnv
 import org.specs2.execute.{AsResult, Result}
 import org.specs2.mutable.Specification
 import uk.gov.homeoffice.akka.cluster.PingActor.{Ping, Pong}
@@ -19,8 +20,9 @@ import uk.gov.homeoffice.akka.{ActorExpectations, ActorSystemSpecification}
 import uk.gov.homeoffice.network.Network
 import uk.gov.homeoffice.specs2._
 
-class ClusterActorSystemSpec extends Specification with ActorSystemSpecification with Network {
-  sequential // Simply because each example can slow each down when running in parallel that includes the likelyhood of timeouts.
+class ClusterActorSystemSpec(implicit env: ExecutionEnv) extends Specification with ActorSystemSpecification with Network {
+  isolated
+  sequential
 
   trait Context extends ActorSystemContext with ActorExpectations {
     var clusterActorSystem: ClusterActorSystem = _
@@ -51,7 +53,7 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
                 loglevel = off
 
                 min-nr-of-members = 2
-                auto-down-unreachable-after = 3s
+                auto-down-unreachable-after = 1s
 
                 cluster {
                   name = "${UUID.randomUUID()}-test-cluster-actor-system"
@@ -109,6 +111,25 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
           }
         }
       }
+    }
+
+    def ping(system: ActorSystem, actorPath: String): Future[Boolean] = {
+      val ponged = Promise[Boolean]()
+
+      val actor = system.actorOf(
+        Props {
+          new Actor {
+            override def receive: Receive = {
+              case Ping => context.actorSelection(actorPath) ! Ping
+              case Pong(_, _) => ponged success true
+            }
+          }
+        }
+      )
+
+      actor ! Ping
+
+      ponged.future
     }
   }
 
@@ -193,16 +214,14 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
         clusteredActorSystem.actorOf(PingActor.props(clusteredActorSystem, index + 1), "ping-actor")
       }
 
-      eventuallyExpectMsg[MemberJoined] {
-        case MemberJoined(_) => ok
+      eventually(retries = 10, sleep = 2 seconds) {
+        val members = cluster.state.members filter { _.status == MemberStatus.Up }
+        members.size mustEqual 2
       }
 
       // With 2 nodes running, a singleton actor can be pinged.
-      eventually(retries = 10, sleep = 1 second) {
-        info(s"Pinging.....")
-        clusteredActorSystem1.actorSelection(s"akka://${clusteredActorSystem1.name}/user/ping-actor/singleton") ! Ping
-        expectMsgType[Pong]
-      }
+      val ponged = ping(clusteredActorSystem1, s"/user/ping-actor/singleton")
+      ponged must beEqualTo(true).await
     }
 
     "run singleton actor for 2 running nodes - using distributed pub/sub" in new Context {
@@ -240,16 +259,14 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
         clusteredActorSystem.actorOf(PingActor.props(clusteredActorSystem, index + 1), "ping-actor")
       }
 
-      eventuallyExpectMsg[MemberJoined] {
-        case MemberJoined(_) => ok
+      eventually(retries = 10, sleep = 2 seconds) {
+        val members = cluster.state.members filter { _.status == MemberStatus.Up }
+        members.size mustEqual 2
       }
 
       // With 2 nodes running, a singleton actor can be pinged.
-      eventually(retries = 10, sleep = 2 seconds) {
-        info(s"Pinging.....")
-        clusteredActorSystem1.actorSelection(s"akka://${clusteredActorSystem1.name}/user/ping-actor/singleton") ! Ping
-        expectMsgType[Pong](30 seconds)
-      }
+      val ponged = ping(clusteredActorSystem1, s"/user/ping-actor/singleton")
+      ponged must beEqualTo(true).await
 
       // 1 node leaves the cluster.
       cluster.down(cluster.selfAddress)
@@ -258,7 +275,6 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
         case MemberRemoved(_, _) => ok
       }
 
-      // With only 1 node running, and configured to need at least 2 to form a cluster.
       info(s"Pinging.....")
       clusteredActorSystem2.actorSelection(s"akka://${clusteredActorSystem2.name}/user/ping-actor/singleton") ! Ping
 
@@ -275,16 +291,14 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
         clusteredActorSystem.actorOf(PingActor.props(clusteredActorSystem, index + 1), "ping-actor")
       }
 
-      eventuallyExpectMsg[MemberJoined] {
-        case MemberJoined(_) => ok
+      eventually(retries = 10, sleep = 2 seconds) {
+        val members = cluster.state.members filter { _.status == MemberStatus.Up }
+        members.size mustEqual 3
       }
 
       // With 3 nodes running, a singleton actor can be pinged.
-      eventually(retries = 10, sleep = 2 seconds) {
-        info(s"Pinging.....")
-        clusteredActorSystem1.actorSelection(s"akka://${clusteredActorSystem1.name}/user/ping-actor/singleton") ! Ping
-        expectMsgType[Pong]
-      }
+      val ponged = ping(clusteredActorSystem1, s"/user/ping-actor/singleton")
+      ponged must beEqualTo(true).await
 
       // 1 node leaves the cluster.
       cluster.down(cluster.selfAddress)
@@ -293,11 +307,10 @@ class ClusterActorSystemSpec extends Specification with ActorSystemSpecification
         case MemberRemoved(_, _) => ok
       }
 
-      // With 2 nodes running, a singleton actor can be pinged.
-      eventually(retries = 10, sleep = 2 seconds) {
-        info(s"Pinging.....")
-        clusteredActorSystem2.actorSelection(s"akka://${clusteredActorSystem2.name}/user/ping-actor/singleton") ! Ping
-        expectMsgType[Pong](30 seconds)
+      // Singleton actor can still be pinged
+      eventually(retries = 10, sleep = 10 seconds) {
+        val pongedAgain = ping(clusteredActorSystem2, s"/user/ping-actor/singleton")
+        pongedAgain must beEqualTo(true).await
       }
     }
   }
@@ -324,7 +337,6 @@ class PingActor(id: Int) extends Actor {
   mediator ! Subscribe("content", self)
 
   override def receive: Receive = {
-    case Ping =>
-      sender() ! Pong(self.path, id)
+    case Ping => sender() ! Pong(self.path, id)
   }
 }
