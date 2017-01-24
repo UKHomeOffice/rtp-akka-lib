@@ -221,7 +221,7 @@ class ClusterActorSystemSpec(implicit env: ExecutionEnv) extends Specification w
 
       // With 2 nodes running, a singleton actor can be pinged.
       val ponged = ping(clusteredActorSystem1, s"/user/ping-actor/singleton")
-      ponged must beEqualTo(true).await
+      ponged must beEqualTo(true).awaitFor(10 seconds)
     }
 
     "run singleton actor for 2 running nodes - using distributed pub/sub" in new Context {
@@ -266,7 +266,7 @@ class ClusterActorSystemSpec(implicit env: ExecutionEnv) extends Specification w
 
       // With 2 nodes running, a singleton actor can be pinged.
       val ponged = ping(clusteredActorSystem1, s"/user/ping-actor/singleton")
-      ponged must beEqualTo(true).await
+      ponged must beEqualTo(true).awaitFor(10 seconds)
 
       // 1 node leaves the cluster.
       cluster.down(cluster.selfAddress)
@@ -298,7 +298,7 @@ class ClusterActorSystemSpec(implicit env: ExecutionEnv) extends Specification w
 
       // With 3 nodes running, a singleton actor can be pinged.
       val ponged = ping(clusteredActorSystem1, s"/user/ping-actor/singleton")
-      ponged must beEqualTo(true).await
+      ponged must beEqualTo(true).awaitFor(10 seconds)
 
       // 1 node leaves the cluster.
       cluster.down(cluster.selfAddress)
@@ -310,7 +310,7 @@ class ClusterActorSystemSpec(implicit env: ExecutionEnv) extends Specification w
       // Singleton actor can still be pinged
       eventually(retries = 10, sleep = 10 seconds) {
         val pongedAgain = ping(clusteredActorSystem2, s"/user/ping-actor/singleton")
-        pongedAgain must beEqualTo(true).await
+        pongedAgain must beEqualTo(true).awaitFor(10 seconds)
       }
     }
   }
