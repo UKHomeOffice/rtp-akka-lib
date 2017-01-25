@@ -5,6 +5,7 @@ import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future, Promise}
+import scala.util.Try
 import akka.actor.{Actor, ActorPath, ActorSystem, PoisonPill, Props}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
@@ -114,28 +115,29 @@ class ClusterActorSystemSpec(implicit env: ExecutionEnv) extends Specification w
     }
 
     /**
-      *
       * @param system ActorSystem
-      * @param actorPath String The path of the actor to "ping"
+      * @param actorPath String The path of the actor to be pinged
       * @return Boolean where true is given upon a successful "ping"
       */
     def ping(system: ActorSystem, actorPath: String): Boolean = {
       val ponged = Promise[Boolean]()
 
-      val actor = system.actorOf(
-        Props {
-          new Actor {
-            override def receive: Receive = {
-              case Ping => context.actorSelection(actorPath) ! Ping
-              case Pong(_, _) => ponged success true
+      Try {
+        eventually(retries = 30, sleep = 1 second) {
+          val actor = system actorOf Props {
+            new Actor {
+              override def receive: Receive = {
+                case Ping => context.actorSelection(actorPath) ! Ping
+                case Pong(_, _) => ponged success true
+              }
             }
           }
+
+          actor ! Ping
+
+          Await.result(ponged.future, 1 second)
         }
-      )
-
-      actor ! Ping
-
-      Await.result(ponged.future, 5 seconds)
+      } getOrElse false
     }
   }
 
@@ -225,9 +227,7 @@ class ClusterActorSystemSpec(implicit env: ExecutionEnv) extends Specification w
       }
 
       // With 2 nodes running, a singleton actor can be pinged.
-      eventually(retries = 10, sleep = 10 seconds) {
-        ping(clusteredActorSystem1, s"/user/ping-actor/singleton") must beTrue
-      }
+      ping(clusteredActorSystem1, "/user/ping-actor/singleton") must beTrue
     }
 
     "run singleton actor for 2 running nodes - using distributed pub/sub" in new Context {
@@ -274,9 +274,7 @@ class ClusterActorSystemSpec(implicit env: ExecutionEnv) extends Specification w
       }
 
       // With 2 nodes running, a singleton actor can be pinged.
-      eventually(retries = 10, sleep = 10 seconds) {
-        ping(clusteredActorSystem1, s"/user/ping-actor/singleton") must beTrue
-      }
+      ping(clusteredActorSystem1, "/user/ping-actor/singleton") must beTrue
 
       // 1 node leaves the cluster.
       cluster.down(cluster.selfAddress)
@@ -285,13 +283,7 @@ class ClusterActorSystemSpec(implicit env: ExecutionEnv) extends Specification w
         case MemberRemoved(_, _) => ok
       }
 
-      info(s"Pinging.....")
-      clusteredActorSystem2.actorSelection(s"akka://${clusteredActorSystem2.name}/user/ping-actor/singleton") ! Ping
-
-      expectMsgPF(30 seconds) {
-        case Pong(_, _) => ko
-        case _ => ok
-      }
+      ping(clusteredActorSystem1, "/user/ping-actor/singleton") must beFalse
     }
 
     "run singleton actor for 3 running nodes, even after bringing down the leading node" in new Context {
@@ -306,9 +298,7 @@ class ClusterActorSystemSpec(implicit env: ExecutionEnv) extends Specification w
       }
 
       // With 3 nodes running, a singleton actor can be pinged.
-      eventually(retries = 10, sleep = 10 seconds) {
-        ping(clusteredActorSystem1, s"/user/ping-actor/singleton") must beTrue
-      }
+      ping(clusteredActorSystem1, "/user/ping-actor/singleton") must beTrue
 
       // 1 node leaves the cluster.
       cluster.down(cluster.selfAddress)
@@ -318,9 +308,7 @@ class ClusterActorSystemSpec(implicit env: ExecutionEnv) extends Specification w
       }
 
       // Singleton actor can still be pinged
-      eventually(retries = 10, sleep = 10 seconds) {
-        ping(clusteredActorSystem2, s"/user/ping-actor/singleton") must beTrue
-      }
+      ping(clusteredActorSystem2, "/user/ping-actor/singleton") must beTrue
     }
   }
 }
