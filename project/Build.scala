@@ -5,10 +5,14 @@ import spray.revolver.RevolverPlugin._
 object Build extends Build {
   val moduleName = "rtp-akka-lib"
 
+  lazy val ItTest = config("it") extend Test
+
   val root = Project(id = moduleName, base = file("."))
     .configs(IntegrationTest)
-    .settings(Revolver.settings)
     .settings(Defaults.itSettings: _*)
+    .configs(ItTest)
+    .settings(inConfig(ItTest)(Defaults.testSettings) : _*)
+    .settings(Revolver.settings)
     .settings(javaOptions in Test += "-Dconfig.resource=application.test.conf")
     .settings(
       name := moduleName,
@@ -52,10 +56,10 @@ object Build extends Build {
         "uk.gov.homeoffice" %% "rtp-io-lib" % `rtp-io-lib-version` withSources(),
         "uk.gov.homeoffice" %% "rtp-test-lib" % `rtp-test-lib-version` withSources()
       ) ++ Seq(
-        "com.typesafe.akka" %% "akka-testkit" % `akka-version` % Test withSources(),
-        "io.spray" %% "spray-testkit" % `spray-version` % Test withSources() excludeAll (ExclusionRule(organization = "org.specs2"), ExclusionRule(organization = "org.json4s")) exclude("io.spray", "spray-routing"),
-        "uk.gov.homeoffice" %% "rtp-io-lib" % `rtp-io-lib-version` % Test classifier "tests" withSources(),
-        "uk.gov.homeoffice" %% "rtp-test-lib" % `rtp-test-lib-version` % Test classifier "tests" withSources()
+        "com.typesafe.akka" %% "akka-testkit" % `akka-version` % "it, test" withSources(),
+        "io.spray" %% "spray-testkit" % `spray-version` % "it, test" withSources() excludeAll (ExclusionRule(organization = "org.specs2"), ExclusionRule(organization = "org.json4s")) exclude("io.spray", "spray-routing"),
+        "uk.gov.homeoffice" %% "rtp-io-lib" % `rtp-io-lib-version` % "it, test" classifier "tests" withSources(),
+        "uk.gov.homeoffice" %% "rtp-test-lib" % `rtp-test-lib-version` % "it, test" classifier "tests" withSources()
       )
     })
 }
