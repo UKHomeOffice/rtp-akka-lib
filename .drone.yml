@@ -1,0 +1,41 @@
+---
+
+pipeline:
+  build:
+    commands:
+      - /root/entrypoint.sh
+      - sbt clean test
+    image: quay.io/ukhomeofficedigital/scala-sbt:v0.3.1
+    environment:
+      - ARTIFACTORY_USERNAME=regt-build-bot
+    secrets:
+      - ARTIFACTORY_PASSWORD
+    when:
+      event: push
+
+  publish:
+    commands:
+      - /root/entrypoint.sh
+      - sbt publish
+    image: quay.io/ukhomeofficedigital/scala-sbt:v0.3.1
+    environment:
+      - ARTIFACTORY_SERVER=https://artifactory.digital.homeoffice.gov.uk/
+      - ARTIFACTORY_USERNAME=regt-build-bot
+    secrets:
+      - ARTIFACTORY_PASSWORD
+    when:
+      event: push
+      branch: master
+
+  publish_tag:
+    commands:
+      - /root/entrypoint.sh
+      - sbt "set version := \"$${DRONE_TAG}\"" publish
+    image: quay.io/ukhomeofficedigital/scala-sbt:v0.3.1
+    environment:
+      - ARTIFACTORY_SERVER=https://artifactory.digital.homeoffice.gov.uk/
+      - ARTIFACTORY_USERNAME=regt-build-bot
+    secrets:
+      - ARTIFACTORY_PASSWORD
+    when:
+      event: tag
