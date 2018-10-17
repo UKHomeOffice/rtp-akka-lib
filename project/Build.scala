@@ -54,7 +54,8 @@ object Build extends Build {
         "io.spray" %% "spray-routing-shapeless2" % `spray-version` withSources() excludeAll ExclusionRule(organization = "org.json4s"),
         "de.flapdoodle.embed" % "de.flapdoodle.embed.mongo" % "1.50.2" withSources(),
         "uk.gov.homeoffice" %% "rtp-io-lib" % `rtp-io-lib-version` withSources(),
-        "uk.gov.homeoffice" %% "rtp-test-lib" % `rtp-test-lib-version` withSources()
+        "uk.gov.homeoffice" %% "rtp-test-lib" % `rtp-test-lib-version` withSources(),
+        "org.scala-lang.modules" %% "scala-pickling" % "0.10.1"
       ) ++ Seq(
         "com.typesafe.akka" %% "akka-testkit" % `akka-version` % "it, test" withSources(),
         "io.spray" %% "spray-testkit" % `spray-version` % "it, test" withSources() excludeAll (ExclusionRule(organization = "org.specs2"), ExclusionRule(organization = "org.json4s")) exclude("io.spray", "spray-routing"),
