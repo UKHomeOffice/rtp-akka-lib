@@ -16,7 +16,7 @@ pipeline:
   publish:
     commands:
       - /root/entrypoint.sh
-      - sbt publish
+      - sbt '+ publish'
     image: quay.io/ukhomeofficedigital/scala-sbt:v0.3.1
     environment:
       - ARTIFACTORY_SERVER=https://artifactory.digital.homeoffice.gov.uk/
@@ -30,7 +30,7 @@ pipeline:
   publish_tag:
     commands:
       - /root/entrypoint.sh
-      - sbt "set version := \"$${DRONE_TAG}\"" publish
+      - sbt "set version := \"$${DRONE_TAG}\"" '+ publish'
     image: quay.io/ukhomeofficedigital/scala-sbt:v0.3.1
     environment:
       - ARTIFACTORY_SERVER=https://artifactory.digital.homeoffice.gov.uk/
