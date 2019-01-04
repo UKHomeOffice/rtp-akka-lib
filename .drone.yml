@@ -4,6 +4,7 @@ pipeline:
   build:
     commands:
       - /root/entrypoint.sh
+      - git fetch --tags
       - sbt clean test
     image: quay.io/ukhomeofficedigital/scala-sbt:v0.3.1
     environment:
@@ -11,12 +12,14 @@ pipeline:
     secrets:
       - ARTIFACTORY_PASSWORD
     when:
-      event: push
+      event:
+        - push
+        - tag
 
   publish:
     commands:
       - /root/entrypoint.sh
-      - sbt '+ publish'
+      - sbt +publish
     image: quay.io/ukhomeofficedigital/scala-sbt:v0.3.1
     environment:
       - ARTIFACTORY_SERVER=https://artifactory.digital.homeoffice.gov.uk/
@@ -24,18 +27,7 @@ pipeline:
     secrets:
       - ARTIFACTORY_PASSWORD
     when:
-      event: push
+      event:
+        - push
+        - tag
       branch: master
-
-  publish_tag:
-    commands:
-      - /root/entrypoint.sh
-      - sbt "set version := \"$${DRONE_TAG}\"" '+ publish'
-    image: quay.io/ukhomeofficedigital/scala-sbt:v0.3.1
-    environment:
-      - ARTIFACTORY_SERVER=https://artifactory.digital.homeoffice.gov.uk/
-      - ARTIFACTORY_USERNAME=regt-build-bot
-    secrets:
-      - ARTIFACTORY_PASSWORD
-    when:
-      event: tag

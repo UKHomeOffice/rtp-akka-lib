@@ -38,8 +38,8 @@ val root = Project(id = moduleName, base = file("."))
   .settings(libraryDependencies ++= {
     val `akka-version` = "2.4.16"
     val `spray-version` = "1.3.3"
-    val `rtp-io-lib-version` = "2.1.0"
-    val `rtp-test-lib-version` = "1.6.5-gb79f646"
+    val `rtp-io-lib-version` = "2.2.0"
+    val `rtp-test-lib-version` = "1.6.6-g6f56307"
 
     Seq(
       "com.typesafe.akka" %% "akka-actor" % `akka-version` withSources(),
@@ -85,7 +85,7 @@ val branchTag = if (git.gitCurrentBranch.value == "master") "" else "-" + git.gi
 val uncommit = if (git.gitUncommittedChanges.value) "-U" else ""
 
 tag match {
-  case v if v.matches("v\\d+.\\d+") => Some(s"$v.0${branchTag}${uncommit}".drop(1))
+  case v if v.matches("v\\d+.\\d+") => Some(s"$v.0${uncommit}".drop(1))
   case v if v.matches("v\\d+.\\d+-.*") => Some(s"${v.replaceFirst("-",".")}${branchTag}${uncommit}".drop(1))
   case _ => None
 }}
