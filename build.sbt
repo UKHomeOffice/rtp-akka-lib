@@ -76,3 +76,16 @@ publishArtifact in (Test, packageSrc) := true
 
 fork in run := true
 fork in Test := true
+
+git.useGitDescribe := true
+git.gitDescribePatterns := Seq("v*.*")
+git.gitTagToVersionNumber := { tag :String =>
+
+val branchTag = if (git.gitCurrentBranch.value == "master") "" else "-" + git.gitCurrentBranch.value
+val uncommit = if (git.gitUncommittedChanges.value) "-U" else ""
+
+tag match {
+  case v if v.matches("v\\d+.\\d+") => Some(s"$v.0${branchTag}${uncommit}".drop(1))
+  case v if v.matches("v\\d+.\\d+-.*") => Some(s"${v.replaceFirst("-",".")}${branchTag}${uncommit}".drop(1))
+  case _ => None
+}}
