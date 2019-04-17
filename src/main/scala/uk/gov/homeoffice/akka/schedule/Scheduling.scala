@@ -55,7 +55,10 @@ trait Scheduling[R] extends ActorLogging with ActorInitialisationLog {
       }
   }
 
-  private def doSchedule(delay: FiniteDuration) = context.system.scheduler.scheduleOnce(delay, self, Schedule)
+  private def doSchedule(delay: FiniteDuration) = {
+    log.info(s"Scheduled invoked for Actor class: ${self.getClass.getName} in ${delay.toMinutes} minutes")
+    context.system.scheduler.scheduleOnce(delay, self, Schedule)
+  }
 }
 
 case class Schedule(initialDelay: FiniteDuration = 0 seconds,
