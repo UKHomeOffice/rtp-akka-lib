@@ -1,7 +1,9 @@
-import sbt._
+import sbt.{Credentials, Path, _}
 import Keys._
 
 val moduleName = "rtp-akka-lib"
+
+credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
 
 lazy val ItTest = config("it") extend Test
 
