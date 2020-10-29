@@ -15,7 +15,7 @@ val root = Project(id = moduleName, base = file("."))
   .settings(
     name := moduleName,
     organization := "uk.gov.homeoffice",
-    scalaVersion := "2.11.8",
+    scalaVersion := "2.12.6",
     scalacOptions ++= Seq(
       "-feature",
       "-language:implicitConversions",
@@ -25,10 +25,9 @@ val root = Project(id = moduleName, base = file("."))
       "-language:postfixOps",
       "-Yrangepos",
       "-Yrepl-sync"),
-    ivyScala := ivyScala.value map { _.copy(overrideScalaVersion = true) },
     resolvers ++= Seq(
-      "Artifactory Snapshot Realm" at "http://artifactory.registered-traveller.homeoffice.gov.uk/artifactory/libs-snapshot-local/",
-      "Artifactory Release Realm" at "http://artifactory.registered-traveller.homeoffice.gov.uk/artifactory/libs-release-local/",
+      "Artifactory Snapshot Realm" at "https://artifactory.digital.homeoffice.gov.uk/artifactory/libs-snapshot-local/",
+      "Artifactory Release Realm" at "https://artifactory.digital.homeoffice.gov.uk/artifactory/libs-release-local/",
       "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/",
       "Sonatype Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/",
       "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases",
@@ -36,27 +35,23 @@ val root = Project(id = moduleName, base = file("."))
     )
   )
   .settings(libraryDependencies ++= {
-    val `akka-version` = "2.4.16"
-    val `spray-version` = "1.3.3"
+    val `akka-version` = "2.6.8"
     val `rtp-io-lib-version` = "2.2.0"
     val `rtp-test-lib-version` = "1.6.6-g6f56307"
+    val AkkaHttpVersion =  "10.2.1"
 
     Seq(
-      "com.typesafe.akka" %% "akka-actor" % `akka-version` withSources(),
-      "com.typesafe.akka" %% "akka-remote" % `akka-version` withSources(),
-      "com.typesafe.akka" %% "akka-cluster-tools" % `akka-version` withSources(),
-      "com.typesafe.akka" %% "akka-cluster-metrics" % `akka-version` withSources(),
-      "com.typesafe.akka" %% "akka-stream" % `akka-version` withSources(),
+      "com.typesafe.akka" %% "akka-actor-typed" % `akka-version` withSources(),
+      "com.typesafe.akka" %% "akka-stream-typed" % `akka-version` withSources(),
       "com.typesafe.akka" %% "akka-slf4j" % `akka-version` withSources(),
-      "io.spray" %% "spray-can" % `spray-version` withSources() excludeAll ExclusionRule(organization = "org.json4s") exclude("io.spray", "spray-routing"),
-      "io.spray" %% "spray-routing-shapeless2" % `spray-version` withSources() excludeAll ExclusionRule(organization = "org.json4s"),
+      "com.typesafe.akka" %% "akka-http" % AkkaHttpVersion,
+      "com.typesafe.akka" %% "akka-http-testkit" % AkkaHttpVersion,
+      "com.typesafe.akka" %% "akka-http-spray-json" % AkkaHttpVersion,
       "de.flapdoodle.embed" % "de.flapdoodle.embed.mongo" % "1.50.2" withSources(),
       "uk.gov.homeoffice" %% "rtp-io-lib" % `rtp-io-lib-version` withSources(),
-      "uk.gov.homeoffice" %% "rtp-test-lib" % `rtp-test-lib-version` withSources(),
-      "org.scala-lang.modules" %% "scala-pickling" % "0.10.1"
+      "uk.gov.homeoffice" %% "rtp-test-lib" % `rtp-test-lib-version` withSources()//,
     ) ++ Seq(
       "com.typesafe.akka" %% "akka-testkit" % `akka-version` % "it, test" withSources(),
-      "io.spray" %% "spray-testkit" % `spray-version` % "it, test" withSources() excludeAll (ExclusionRule(organization = "org.specs2"), ExclusionRule(organization = "org.json4s")) exclude("io.spray", "spray-routing"),
       "uk.gov.homeoffice" %% "rtp-io-lib" % `rtp-io-lib-version` % "it, test" classifier "tests" withSources(),
       "uk.gov.homeoffice" %% "rtp-test-lib" % `rtp-test-lib-version` % "it, test" classifier "tests" withSources()
     )
@@ -64,7 +59,7 @@ val root = Project(id = moduleName, base = file("."))
 
 
 publishTo := {
-  val artifactory = sys.env.get("ARTIFACTORY_SERVER").getOrElse("http://artifactory.registered-traveller.homeoffice.gov.uk/")
+  val artifactory = sys.env.get("ARTIFACTORY_SERVER").getOrElse("https://artifactory.registered-traveller.homeoffice.gov.uk/")
   Some("release"  at artifactory + "artifactory/libs-release-local")
 }
 

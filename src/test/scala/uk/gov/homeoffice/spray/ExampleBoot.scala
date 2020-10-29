@@ -1,22 +1,23 @@
 package uk.gov.homeoffice.spray
 
-import akka.actor.ActorSystem
+import akka.Done
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.scaladsl.Behaviors
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
+import akka.http.scaladsl.server.{Directives, ExceptionHandler}
 import com.typesafe.config.ConfigFactory._
 import org.json4s.JsonAST.{JObject, JString}
 import org.json4s.jackson.JsonMethods._
-import spray.http.MediaTypes._
-import spray.http.StatusCodes._
-import spray.http.{HttpEntity, HttpResponse}
-import spray.httpx.Json4sSupport
-import spray.routing._
 import uk.gov.homeoffice.configuration.HasConfig
 import uk.gov.homeoffice.json.JsonFormats
 
 /**
   * Example of booting a Spray microservice
   */
-object ExampleBoot extends App with SprayBoot with ExampleConfig {
-  implicit lazy val sprayActorSystem = ActorSystem("example-boot-actor-system")
+
+
+object ExampleBoot extends App with AkkaHttpBoot[Done] with ExampleConfig {
+  implicit lazy val actorSystem = ActorSystem(Behaviors.empty, "example-boot-actor-system")
 
   bootRoutings(ExampleRouting1 ~ ExampleRouting2 ~ ExampleRoutingError)(FailureHandling.exceptionHandler)
 }
@@ -27,7 +28,8 @@ object ExampleBoot extends App with SprayBoot with ExampleConfig {
 trait ExampleConfig {
   this: HasConfig =>
 
-  override implicit val config = load(parseString("""
+  override implicit val config = load(parseString(
+    """
     spray.can.server {
       name = "example-spray-can"
       host = "0.0.0.0"
@@ -49,7 +51,9 @@ trait ExampleRouting1 extends Routing {
     pathPrefix("example1") {
       pathEndOrSingleSlash {
         get {
-          complete { JObject("status" -> JString("Congratulations 1")) }
+          complete {
+            HttpResponse(status = StatusCodes.OK, entity = HttpEntity(ContentTypes.`application/json`, compact(render(JObject("status" -> JString("Congratulations 1"))))))
+          }
         }
       }
     }
@@ -66,7 +70,9 @@ trait ExampleRouting2 extends Routing {
     pathPrefix("example2") {
       pathEndOrSingleSlash {
         get {
-          complete { JObject("status" -> JString("Congratulations 2")) }
+          complete {
+            HttpResponse(status = StatusCodes.OK, entity = HttpEntity(ContentTypes.`application/json`, compact(render(JObject("status" -> JString("Congratulations 2"))))))
+          }
         }
       }
     }
@@ -82,7 +88,9 @@ trait ExampleRoutingError extends Routing {
     pathPrefix("example-error") {
       pathEndOrSingleSlash {
         get {
-          complete { throw new TestException("This sounds daft, but your error was a success!") }
+          complete {
+            throw new TestException("This sounds daft, but your error was a success!")
+          }
         }
       }
     }
@@ -91,10 +99,10 @@ trait ExampleRoutingError extends Routing {
 /**
   * Example of specific handing of failures
   */
-object FailureHandling extends Directives with JsonFormats with Json4sSupport {
+object FailureHandling extends Directives with JsonFormats {
   val exceptionHandler = ExceptionHandler {
     case e: TestException => complete {
-      HttpResponse(status = InternalServerError, entity = HttpEntity(`application/json`, pretty(render(JObject("test" -> JString(e.getMessage))))))
+      HttpResponse(status = StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`application/json`, pretty(render(JObject("test" -> JString(e.getMessage))))))
     }
   }
 }

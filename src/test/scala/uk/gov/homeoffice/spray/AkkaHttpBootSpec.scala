@@ -1,29 +1,27 @@
 package uk.gov.homeoffice.spray
 
-import akka.actor.{ActorRef, ActorSystem}
-import spray.http.MediaTypes._
-import spray.http.StatusCodes._
-import spray.http.{HttpEntity, HttpResponse}
-import spray.httpx.Json4sSupport
-import spray.routing._
+import akka.Done
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.scaladsl.Behaviors
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
+import akka.http.scaladsl.server.{Directives, ExceptionHandler}
+import com.typesafe.config.ConfigFactory
 import org.json4s.JsonAST.{JObject, JString}
 import org.json4s.jackson.JsonMethods._
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
-import com.typesafe.config.ConfigFactory
 import uk.gov.homeoffice.configuration.HasConfig
 import uk.gov.homeoffice.json.JsonFormats
 
-class SprayBootSpec extends Specification {
-  trait Context extends Scope with SprayBoot with App with LocalConfig {
-    implicit lazy val sprayActorSystem = ActorSystem("spray-boot-spec-spray-can")
+class AkkaHttpBootSpec extends Specification {
 
-    override def bootHttpService(routeHttpService: ActorRef) = {}
+  trait Context extends Scope with AkkaHttpBoot[Done] with App with LocalConfig {
+    implicit lazy val actorSystem = ActorSystem(Behaviors.empty,"spray-boot-spec-spray-can")
   }
 
   "Booting Spray" should {
     "be successful" in new Context {
-      bootRoutings(ExampleRouting)
+      bootRoutings(Seq(ExampleRouting))
       ok
     }
 
@@ -32,24 +30,26 @@ class SprayBootSpec extends Specification {
     }
 
     "allow the HttpRouting to be configured with its own failure handling" in new Context {
-      object FailureHandling extends Directives with JsonFormats with Json4sSupport {
+
+      object FailureHandling extends Directives with JsonFormats {
         val exceptionHandler = ExceptionHandler {
           case e: TestException => complete {
-            HttpResponse(status = InternalServerError, entity = HttpEntity(`application/json`, pretty(render(JObject("test" -> JString(e.getMessage))))))
+            HttpResponse(status = StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`application/json`, pretty(render(JObject("test" -> JString(e.getMessage))))))
           }
         }
       }
 
       class TestException(s: String) extends Exception(s)
 
-      bootRoutings(ExampleRouting)(FailureHandling.exceptionHandler)
+      bootRoutings(Seq(ExampleRouting))(FailureHandling.exceptionHandler)
       ok
     }
   }
 }
 
 trait LocalConfig extends HasConfig {
-  override val config = ConfigFactory.load(ConfigFactory.parseString("""
+  override val config = ConfigFactory.load(ConfigFactory.parseString(
+    """
     spray.can.server {
       name = "spray-it-spray-can"
       host = "0.0.0.0"
