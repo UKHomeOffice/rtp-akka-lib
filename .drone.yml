@@ -1,33 +1,45 @@
 ---
+kind: pipeline
+type: kubernetes
+name: rtp-akka-lib
 
-pipeline:
-  build:
-    commands:
-      - /root/entrypoint.sh
-      - git fetch --tags
-      - sbt clean test
-    image: quay.io/ukhomeofficedigital/scala-sbt:v0.3.1
-    environment:
-      - ARTIFACTORY_USERNAME=regt-build-bot
-    secrets:
-      - ARTIFACTORY_PASSWORD
-    when:
-      event:
-        - push
-        - tag
+platform:
+  os: linux
+  arch: amd64
 
-  publish:
-    commands:
-      - /root/entrypoint.sh
-      - sbt +publish
-    image: quay.io/ukhomeofficedigital/scala-sbt:v0.3.1
-    environment:
-      - ARTIFACTORY_SERVER=https://artifactory.digital.homeoffice.gov.uk/
-      - ARTIFACTORY_USERNAME=regt-build-bot
-    secrets:
-      - ARTIFACTORY_PASSWORD
-    when:
-      event:
-        - push
-        - tag
-      branch: master
+steps:
+- name: build
+  pull: if-not-exists
+  image: quay.io/ukhomeofficedigital/scala-sbt:v0.3.1
+  commands:
+  - /root/entrypoint.sh
+  - git fetch --tags
+  - sbt clean test
+  environment:
+    ARTIFACTORY_PASSWORD:
+      from_secret: ARTIFACTORY_PASSWORD
+    ARTIFACTORY_USERNAME: regt-build-bot
+  when:
+    event:
+    - push
+    - tag
+
+- name: publish
+  pull: if-not-exists
+  image: quay.io/ukhomeofficedigital/scala-sbt:v0.3.1
+  commands:
+  - /root/entrypoint.sh
+  - sbt +publish
+  environment:
+    ARTIFACTORY_PASSWORD:
+      from_secret: ARTIFACTORY_PASSWORD
+    ARTIFACTORY_SERVER: https://artifactory.digital.homeoffice.gov.uk/
+    ARTIFACTORY_USERNAME: regt-build-bot
+  when:
+    branch:
+    - master
+    event:
+    - push
+    - tag
+
+...
